@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { ObjectId } from 'mongodb'
 import { getBookingsCollection, getPaymentProcessesCollection, getConsultationsCollection } from '@/lib/db'
 import { getSession } from '@/lib/auth/session'
+import { createCalendarEvent, deleteCalendarEvent } from '@/lib/google-calendar'
 
 export const dynamic = 'force-dynamic'
 
@@ -174,6 +175,79 @@ export async function PATCH(request: Request) {
       updateDoc.notes = notes
     }
 
+    // If confirming → create Google Calendar event with Meet link
+    if (status === 'confirmed') {
+      try {
+        const bookingsCollection = await getBookingsCollection()
+        const booking = await bookingsCollection.findOne({ _id: new ObjectId(id) })
+
+        if (booking) {
+          // Lookup consultation to get duration
+          let durationMinutes = 30 // default
+          if (booking.consultationId) {
+            try {
+              const consultCol = await getConsultationsCollection()
+              const consultation = await consultCol.findOne({
+                _id: new ObjectId(booking.consultationId),
+              })
+              if (consultation) {
+                durationMinutes = consultation.durationMinutes
+              }
+            } catch {
+              // use default duration
+            }
+          }
+
+          const consultTitle =
+            booking.consultationTitle?.en || 'Medical Consultation'
+
+          const calendarResult = await createCalendarEvent({
+            summary: `Dr. Dalia Ghozlan - ${consultTitle} with ${booking.patientName}`,
+            description: [
+              `Patient: ${booking.patientName}`,
+              `Email: ${booking.email}`,
+              `Phone: ${booking.phone}`,
+              `WhatsApp: ${booking.whatsapp}`,
+              `Consultation: ${consultTitle}`,
+              `Reference: ${booking.reference}`,
+              booking.notes ? `Notes: ${booking.notes}` : '',
+            ]
+              .filter(Boolean)
+              .join('\n'),
+            date: booking.date,
+            time: booking.time,
+            durationMinutes,
+            patientEmail: booking.email || undefined,
+            patientName: booking.patientName,
+          })
+
+          updateDoc.googleMeetLink = calendarResult.meetLink
+          updateDoc.googleCalendarEventId = calendarResult.eventId
+          updateDoc.googleCalendarEventLink = calendarResult.eventLink
+        }
+      } catch (calError: any) {
+        console.error('Google Calendar event creation failed:', calError.message)
+        // Don't block the confirmation — calendar is a nice-to-have
+      }
+    }
+
+    // If cancelling → delete the Google Calendar event
+    if (status === 'cancelled') {
+      try {
+        const bookingsCollection = await getBookingsCollection()
+        const booking = await bookingsCollection.findOne({ _id: new ObjectId(id) })
+
+        if (booking?.googleCalendarEventId) {
+          await deleteCalendarEvent(booking.googleCalendarEventId)
+          updateDoc.googleMeetLink = ''
+          updateDoc.googleCalendarEventId = ''
+          updateDoc.googleCalendarEventLink = ''
+        }
+      } catch (calError: any) {
+        console.error('Google Calendar event deletion failed:', calError.message)
+      }
+    }
+
     const bookingsCollection = await getBookingsCollection()
     const result = await bookingsCollection.updateOne(
       { _id: new ObjectId(id) },
@@ -199,7 +273,11 @@ export async function PATCH(request: Request) {
       )
     }
 
-    return NextResponse.json({ success: true, message: 'Booking updated successfully' })
+    return NextResponse.json({
+      success: true,
+      message: 'Booking updated successfully',
+      meetLink: updateDoc.googleMeetLink || null,
+    })
   } catch (error: any) {
     return NextResponse.json(
       { success: false, error: error.message || 'Failed to update booking' },

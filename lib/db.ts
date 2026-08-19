@@ -57,6 +57,9 @@ export interface BookingDoc {
   paymentStatus: PaymentStatus
   verifiedBy?: string
   verifiedAt?: Date
+  googleMeetLink?: string
+  googleCalendarEventId?: string
+  googleCalendarEventLink?: string
   createdAt: Date
   updatedAt: Date
 }
@@ -121,3 +124,16 @@ export async function getPaymentProcessesCollection() {
   const db = await getDb()
   return db.collection<PaymentProcessDoc>('payment_processes')
 }
+
+export interface SettingDoc {
+  _id?: ObjectId
+  key: string
+  value: any
+  updatedAt: Date
+}
+
+export async function getSettingsCollection() {
+  const db = await getDb()
+  return db.collection<SettingDoc>('settings')
+}
+

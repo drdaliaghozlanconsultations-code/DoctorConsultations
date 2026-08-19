@@ -18,6 +18,7 @@ import {
   AlertCircle,
   ExternalLink,
   RefreshCw,
+  Video,
 } from 'lucide-react'
 import type { BookingItem, ConsultationItem, UserRole } from '@/lib/db'
 
@@ -195,7 +196,18 @@ export function BookingsManager({ initialBookings, consultations, userRole }: Bo
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <a
+            href="/api/auth/google/connect"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="p-2.5 px-3.5 rounded-full border border-border bg-card text-foreground hover:bg-muted transition-colors text-xs font-semibold inline-flex items-center gap-1.5 shadow-xs"
+            title="Link Dr. Dalia's Google Account for automatic Google Meet creation"
+          >
+            <Calendar className="size-4 text-emerald-500" />
+            <span className="hidden sm:inline">Connect Google Calendar</span>
+          </a>
+
           <button
             type="button"
             onClick={fetchBookings}
@@ -343,6 +355,18 @@ export function BookingsManager({ initialBookings, consultations, userRole }: Bo
                         <Clock className="size-3" />
                         {b.time}
                       </div>
+                      {b.googleMeetLink && (
+                        <a
+                          href={b.googleMeetLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-1.5 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 transition-all shadow-2xs"
+                          title="Open Google Meet Video Call"
+                        >
+                          <Video className="size-3" />
+                          <span>Join Meet</span>
+                        </a>
+                      )}
                     </td>
 
                     {/* Amount & Method */}
