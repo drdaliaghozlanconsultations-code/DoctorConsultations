@@ -11,8 +11,8 @@ export function Hero({ locale, dict }: { locale: Locale; dict: Dictionary }) {
         className="pointer-events-none absolute inset-0 -z-10 bg-linear-to-b from-secondary/60 via-background to-background"
         aria-hidden="true"
       />
-      <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 pb-6 pt-6 sm:px-6 lg:grid-cols-2 lg:gap-14 lg:pb-12 lg:pt-10">
-        <div className="order-2 animate-fade-up lg:order-1">
+      <div className="mx-auto grid max-w-6xl items-center gap-0 px-4 pb-6 pt-2 sm:px-6 md:grid-cols-2 lg:gap-14 lg:pb-12 md:pt-0">
+        <div className="order-2 animate-fade-up md:order-1">
           {/* <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-card px-4 py-1.5 text-sm font-medium text-primary shadow-sm">
             <Sparkles className="size-4" aria-hidden="true" />
             {dict.hero.eyebrow}
@@ -36,7 +36,7 @@ export function Hero({ locale, dict }: { locale: Locale; dict: Dictionary }) {
         </div>
 
         <div className="relative order-1 animate-fade-up [animation-delay:120ms] lg:order-2">
-          <div className="relative mx-auto aspect-4/5 w-full max-w-md overflow-hidden rounded-[2.5rem] border border-border bg-secondary shadow-xl">
+          <div className="relative mx-auto aspect-4/5 w-full md:max-w-sm 2xl:max-w-md overflow-hidden rounded-[2.5rem] border border-border bg-secondary shadow-xl">
             <Image
               src="/images/WhatsApp Image 2026-08-11 at 4.33.18 PM.jpeg"
               alt={dict.hero.imageAlt}

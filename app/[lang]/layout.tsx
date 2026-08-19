@@ -7,6 +7,7 @@ import { locales, isLocale, localeDirection, type Locale } from '@/lib/i18n/conf
 import { getDictionary } from '@/lib/i18n'
 import { Navbar } from '@/components/navbar'
 import { Footer } from '@/components/footer'
+import { VisitTracker } from '@/components/visit-tracker'
 
 const fraunces = Fraunces({
   subsets: ['latin'],
@@ -110,6 +111,7 @@ export default async function LocaleLayout({
         <Navbar locale={locale} dict={dict} />
         <main id="main">{children}</main>
         <Footer locale={locale} dict={dict} />
+        <VisitTracker />
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>

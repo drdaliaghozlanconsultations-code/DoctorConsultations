@@ -39,9 +39,9 @@ export default async function ServicesPage({
   ]
 
   return (
-    <div className="overflow-hidden pb-20">
+    <div className="overflow-hidden">
       {/* Header */}
-      <section className="relative border-b border-border/60 bg-linear-to-b from-secondary/50 via-background to-background py-16 sm:py-24">
+      <section className="relative border-b border-border/60 bg-linear-to-b from-secondary/50 via-background to-background py-6 sm:py-12 2xl:py-16">
         <div className="mx-auto max-w-4xl px-4 text-center sm:px-6">
           <Reveal>
             <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-card px-4 py-1.5 text-sm font-medium text-primary shadow-sm">
@@ -59,7 +59,7 @@ export default async function ServicesPage({
       </section>
 
       {/* 6 Core Session Experience Benefits */}
-      <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24">
+      <section className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-12 2xl:py-16">
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
           {benefits.items.map((item, index) => {
             const IconComponent = icons[index % icons.length]
@@ -86,7 +86,7 @@ export default async function ServicesPage({
       <ConsultationsSection dict={dict} locale={lang} />
 
       {/* Bottom CTA */}
-      <section className="mx-auto max-w-4xl px-4 pt-16 text-center sm:px-6">
+      <section className="mx-auto max-w-4xl px-4 py-6 md:py-12 text-center sm:px-6 2xl:py-16">
         <Reveal className="rounded-3xl border border-primary/20 bg-accent/40 p-10 sm:p-14">
           <h2 className="font-serif text-2xl font-semibold text-foreground sm:text-3xl">
             {dict.finalCta.title}

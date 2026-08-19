@@ -254,6 +254,7 @@ export const en = {
       subtitle: 'Select the duration option that best fits your needs.',
       select: 'Select',
       selected: 'Selected',
+      mostWanted: 'Most Wanted',
     },
 
     schedule: {
@@ -326,8 +327,10 @@ export const en = {
     },
 
     confirmation: {
-      title: 'Your consultation is booked',
-      subtitle: 'A confirmation has been sent to your email.',
+      title: 'Booking Request Received',
+      subtitle: 'Your payment receipt has been submitted and is currently being reviewed by our staff. You will receive a confirmation email shortly.',
+      pendingBadge: 'Pending Staff Verification',
+      pendingNotice: 'Our staff will review your InstaPay transfer receipt and send a confirmation email with your appointment details within a couple of hours.',
       reference: 'Booking reference',
       consultation: 'Consultation',
       date: 'Date',
@@ -335,9 +338,9 @@ export const en = {
       email: 'Email',
       nextStepsTitle: 'What happens next',
       nextSteps: [
-        'You’ll receive a confirmation email with your appointment details.',
-        'A secure meeting link will be sent to your email & WhatsApp before your appointment.',
-        'Dr. Dalia will meet with you at your scheduled time.',
+        'Our staff verifies your InstaPay payment receipt.',
+        'You will receive a confirmation email once verified (within a couple of hours).',
+        'A secure video consultation link will be sent to your email prior to your scheduled session.',
       ],
       backHome: 'Back to Home',
       bookAnother: 'Book Another Consultation',

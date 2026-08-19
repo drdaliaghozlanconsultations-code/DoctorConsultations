@@ -158,9 +158,9 @@ export function Footer({ locale, dict }: { locale: Locale; dict: Dictionary }) {
           </p>
           <LanguageSwitcher locale={locale} label={dict.nav.language} />
         </div>
-        <p className="mt-4 text-xs leading-relaxed text-muted-foreground/70">
+        {/* <p className="mt-4 text-xs leading-relaxed text-muted-foreground/70">
           {dict.footer.disclaimer}
-        </p>
+        </p> */}
       </div>
     </footer>
   )

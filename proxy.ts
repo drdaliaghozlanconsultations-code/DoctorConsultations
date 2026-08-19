@@ -14,6 +14,32 @@ function detectLocale(request: NextRequest): string {
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
+  // 1. Dashboard routes: standalone, no locale prefixing
+  if (pathname === '/dashboard' || pathname.startsWith('/dashboard/')) {
+    const sessionCookie = request.cookies.get('drdalia_session')?.value
+
+    // If accessing login page while already logged in
+    if (pathname === '/dashboard/login') {
+      if (sessionCookie) {
+        const dashboardUrl = request.nextUrl.clone()
+        dashboardUrl.pathname = '/dashboard'
+        return NextResponse.redirect(dashboardUrl)
+      }
+      return NextResponse.next()
+    }
+
+    // If accessing protected dashboard routes without session cookie
+    if (!sessionCookie) {
+      const loginUrl = request.nextUrl.clone()
+      loginUrl.pathname = '/dashboard/login'
+      loginUrl.searchParams.set('callbackUrl', pathname)
+      return NextResponse.redirect(loginUrl)
+    }
+
+    return NextResponse.next()
+  }
+
+  // 2. Public routes: check locale prefix
   const hasLocale = locales.some(
     (locale) => pathname === `/${locale}` || pathname.startsWith(`/${locale}/`),
   )

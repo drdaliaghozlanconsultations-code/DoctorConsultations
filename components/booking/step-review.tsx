@@ -14,9 +14,10 @@ import type { PatientDetails } from './step-details'
 interface StepReviewProps {
   locale: Locale
   dict: Dictionary
-  consultation: ConsultationType | null
+  consultation: (ConsultationType & { priceEGP?: number; priceUSD?: number }) | null
   date: string | null
   time: string | null
+  currency: 'EGP' | 'USD'
   details: PatientDetails
   onJumpToStep: (step: number) => void
 }
@@ -27,10 +28,20 @@ export function StepReview({
   consultation,
   date,
   time,
+  currency = 'EGP',
   details,
   onJumpToStep,
 }: StepReviewProps) {
   const d = dict.booking.review
+
+  const priceValue =
+    consultation
+      ? currency === 'USD' && consultation.priceUSD !== undefined
+        ? consultation.priceUSD
+        : currency === 'EGP' && consultation.priceEGP !== undefined
+        ? consultation.priceEGP
+        : consultation.price
+      : 0
 
   return (
     <div>
@@ -70,7 +81,7 @@ export function StepReview({
               </p>
             </div>
             <span className="font-serif text-2xl font-semibold text-foreground">
-              {consultation ? formatPrice(consultation.price, locale) : '—'}
+              {consultation ? formatPrice(priceValue, locale, currency) : '—'}
             </span>
           </div>
         </div>

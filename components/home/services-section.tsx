@@ -1,11 +1,12 @@
 import type { Locale } from '@/lib/i18n/config'
 import type { Dictionary } from '@/lib/i18n'
-import { services } from '@/lib/data/site'
+import { services, ServiceItem } from '@/lib/data/site'
+import { getConsultationsCollection } from '@/lib/db'
 import { ServiceCard } from '@/components/service-card'
 import { CtaLink } from '@/components/cta-link'
 import { Reveal } from '@/components/reveal'
 
-export function ServicesSection({
+export async function ServicesSection({
   locale,
   dict,
   showAll = false,
@@ -14,7 +15,37 @@ export function ServicesSection({
   dict: Dictionary
   showAll?: boolean
 }) {
-  const list = showAll ? services : services.slice(0, 3)
+  let list: ServiceItem[] = services
+
+  try {
+    const col = await getConsultationsCollection()
+    const docs = await col
+      .find({ isActive: true })
+      .sort({ sortOrder: 1, createdAt: -1 })
+      .toArray()
+
+    if (docs && docs.length > 0) {
+      list = docs.map((d, index) => ({
+        id: d._id?.toString() || `consult-${index}`,
+        icon: 'Stethoscope',
+        name: d.title,
+        description: d.description,
+        durationMinutes: d.durationMinutes,
+        startingPrice: d.priceEGP,
+      }))
+    }
+  } catch (error) {
+    console.error('Failed to fetch consultations for services section:', error)
+    list = services
+  }
+
+  const displayedList = showAll ? list : list.slice(0, 3)
+
+  // Find the highest priced session for the "Most Wanted" badge
+  const highestPrice = Math.max(
+    ...displayedList.map((s) => s.startingPrice || 0),
+    0,
+  )
 
   return (
     <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6" id="services">
@@ -30,10 +61,15 @@ export function ServicesSection({
         </p>
       </Reveal>
 
-      <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {list.map((service, i) => (
+      <div className="mt-12 grid gap-6 sm:grid-cols-2 md:grid-cols-3">
+        {displayedList.map((service, i) => (
           <Reveal key={service.id} delay={i * 70} className="h-full">
-            <ServiceCard service={service} locale={locale} dict={dict} />
+            <ServiceCard
+              service={service}
+              locale={locale}
+              dict={dict}
+              isMostWanted={service.startingPrice === highestPrice && highestPrice > 0}
+            />
           </Reveal>
         ))}
       </div>
