@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { google } from 'googleapis'
 import { getSettingsCollection } from '@/lib/db'
+import { resetCalendarCache } from '@/lib/google-calendar'
 
 export const dynamic = 'force-dynamic'
 
@@ -66,6 +67,9 @@ export async function GET(request: Request) {
       },
       { upsert: true },
     )
+
+    // Invalidate cached calendar client so it picks up the new tokens
+    resetCalendarCache()
 
     return new Response(
       `<!DOCTYPE html>

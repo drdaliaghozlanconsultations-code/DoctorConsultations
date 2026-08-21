@@ -197,16 +197,8 @@ export function BookingsManager({ initialBookings, consultations, userRole }: Bo
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <a
-            href="/api/auth/google/connect"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="p-2.5 px-3.5 rounded-full border border-border bg-card text-foreground hover:bg-muted transition-colors text-xs font-semibold inline-flex items-center gap-1.5 shadow-xs"
-            title="Link Dr. Dalia's Google Account for automatic Google Meet creation"
-          >
-            <Calendar className="size-4 text-emerald-500" />
-            <span className="hidden sm:inline">Connect Google Calendar</span>
-          </a>
+
+
 
           <button
             type="button"

@@ -1,11 +1,21 @@
-import { google } from 'googleapis'
+import { google, calendar_v3 } from 'googleapis'
 import { getSettingsCollection } from './db'
 
 /**
+ * Module-level cached calendar client.
+ * Reused across requests within the same Node.js process (warm starts)
+ * to avoid recreating the OAuth2 client and querying MongoDB every time.
+ */
+let cachedCalendar: calendar_v3.Calendar | null = null
+
+/**
  * Get an authenticated Google Calendar client using OAuth 2.0.
- * Retrieves the refresh token from MongoDB settings or environment variables.
+ * Caches the client at module level — only queries MongoDB on cold start
+ * or after an explicit cache reset (e.g. when re-linking the account).
  */
 async function getOAuthCalendarClient() {
+  if (cachedCalendar) return cachedCalendar
+
   const clientId = process.env.GOOGLE_CLIENT_ID
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET
   const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3000/api/auth/google/callback'
@@ -16,7 +26,7 @@ async function getOAuthCalendarClient() {
 
   const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri)
 
-  // Retrieve stored refresh token from MongoDB
+  // Retrieve stored refresh token from MongoDB (only on cold start)
   const settingsCol = await getSettingsCollection()
   const tokenDoc = await settingsCol.findOne({ key: 'google_calendar_token' })
 
@@ -36,7 +46,8 @@ async function getOAuthCalendarClient() {
   // Listen for refreshed tokens and save them back to MongoDB
   oauth2Client.on('tokens', async (newTokens) => {
     if (newTokens.refresh_token || newTokens.access_token) {
-      await settingsCol.updateOne(
+      const col = await getSettingsCollection()
+      await col.updateOne(
         { key: 'google_calendar_token' },
         {
           $set: {
@@ -51,7 +62,17 @@ async function getOAuthCalendarClient() {
     }
   })
 
-  return google.calendar({ version: 'v3', auth: oauth2Client })
+  cachedCalendar = google.calendar({ version: 'v3', auth: oauth2Client })
+  return cachedCalendar
+}
+
+/**
+ * Reset the cached calendar client.
+ * Call this after re-linking the Google account so the next request
+ * picks up the new tokens from MongoDB.
+ */
+export function resetCalendarCache() {
+  cachedCalendar = null
 }
 
 export interface CalendarEventInput {
