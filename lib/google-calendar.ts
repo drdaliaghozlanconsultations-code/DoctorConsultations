@@ -124,10 +124,29 @@ export async function createCalendarEvent(
     })
   }
 
+  // Include clinic/admin notification email(s) so doctor/staff also receives instant email notifications
+  const adminNotificationEmails = (
+    process.env.ADMIN_NOTIFICATION_EMAIL ||
+    process.env.GOOGLE_CALENDAR_ID ||
+    ''
+  )
+    .split(',')
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean)
+
+  for (const adminEmail of adminNotificationEmails) {
+    if (!attendees.some((a) => a.email.toLowerCase() === adminEmail)) {
+      attendees.push({
+        email: adminEmail,
+        displayName: 'Dr. Dalia Ghozlan',
+      })
+    }
+  }
+
   const event = await calendar.events.insert({
     calendarId: 'primary',
     conferenceDataVersion: 1, // Auto-creates Google Meet
-    sendUpdates: input.patientEmail ? 'all' : 'none', // Send email invite with Meet link to patient
+    sendUpdates: attendees.length > 0 ? 'all' : 'none', // Send email invite with Meet link to attendees
     requestBody: {
       summary: input.summary,
       description: input.description,
