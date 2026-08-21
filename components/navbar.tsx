@@ -69,7 +69,7 @@ export function Navbar({ locale, dict }: { locale: Locale; dict: Dictionary }) {
           >
             D
           </span> */}
-          <span className="font-serif text-xl font-semibold text-primary tracking-tight">
+          <span className="font-serif text-base md:text-xl font-semibold text-primary tracking-tight">
             {dict.meta.siteName}
           </span>
         </Link>
@@ -94,7 +94,7 @@ export function Navbar({ locale, dict }: { locale: Locale; dict: Dictionary }) {
           ))}
         </ul>
 
-        <div className="hidden items-center gap-3 lg:flex">
+        <div className="hidden  items-center gap-3 lg:flex">
           <LanguageSwitcher locale={locale} label={dict.nav.language} />
           <CtaLink href={`/${locale}/booking`} size="md">
             {dict.nav.bookNow}
@@ -102,7 +102,7 @@ export function Navbar({ locale, dict }: { locale: Locale; dict: Dictionary }) {
         </div>
 
         {/* Mobile controls */}
-        <div className="flex items-center gap-2 lg:hidden">
+        <div className="flex items-center text-center gap-2 lg:hidden">
           <CtaLink href={`/${locale}/booking`} size="md" className="h-10 px-4 text-sm">
             {dict.nav.bookNow}
           </CtaLink>

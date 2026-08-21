@@ -75,11 +75,11 @@ export async function ConsultationsSection({
                       : 'border-border bg-card hover:border-primary/40'
                     }`}
                 >
-                  {/* "Most Wanted" Badge on Top Right */}
+                  {/* "Most Booked" Badge on Top Right */}
                   {isMostWanted && (
                     <div className="absolute -top-3.5 end-6 inline-flex items-center gap-1.5 rounded-full bg-primary text-primary-foreground px-3.5 py-1 text-xs font-bold shadow-md ring-2 ring-background">
                       <Sparkles className="size-3.5 fill-current" />
-                      <span>{dict.booking.consultation.mostWanted || (isArabic ? 'الأكثر طلباً' : 'Most Wanted')}</span>
+                      <span>{dict.booking.consultation.mostWanted || (isArabic ? 'الأكثر حجزاً' : 'Most Booked')}</span>
                     </div>
                   )}
 

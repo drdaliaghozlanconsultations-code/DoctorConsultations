@@ -73,11 +73,11 @@ export function StepConsultation({
                     : 'border-border bg-card hover:border-primary/40 hover:shadow-md',
               )}
             >
-              {/* "Most Wanted" Badge on Highest Priced Session */}
+              {/* "Most Booked" Badge on Highest Priced Session */}
               {isMostWanted && (
                 <div className="absolute -top-3.5 end-6 inline-flex items-center gap-1.5 rounded-full bg-primary text-primary-foreground px-3.5 py-1 text-xs font-bold shadow-md ring-2 ring-background">
                   <Sparkles className="size-3.5 fill-current" />
-                  <span>{d.mostWanted || (locale === 'ar' ? 'الأكثر طلباً' : 'Most Wanted')}</span>
+                  <span>{d.mostWanted || (locale === 'ar' ? 'الأكثر حجزاً' : 'Most Booked')}</span>
                 </div>
               )}
 

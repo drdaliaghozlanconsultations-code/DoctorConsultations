@@ -70,7 +70,7 @@ export function Footer({ locale, dict }: { locale: Locale; dict: Dictionary }) {
               >
                 D
               </span> */}
-              <span className="font-serif text-xl text-primary font-semibold">
+              <span className="font-serif text-base md:text-xl text-primary font-semibold">
                 {dict.meta.siteName}
               </span>
             </Link>

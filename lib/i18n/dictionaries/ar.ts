@@ -2,9 +2,9 @@ import type { Dictionary } from './en'
 
 export const ar: Dictionary = {
   meta: {
-    siteName: 'د. داليا',
+    siteName: 'د. داليا غزلان',
     home: {
-      title: 'د. داليا — استشارات طبية متميّزة',
+      title: 'د. داليا غزلان — استشارات طبية متميّزة',
       description:
         'استشارات طبية شخصية ومليئة بالرعاية مع د. داليا. احجزي استشارتك الخاصة أونلاين أو في العيادة لرعاية موثوقة من خبيرة.',
     },
@@ -252,7 +252,7 @@ export const ar: Dictionary = {
       subtitle: 'حددي الخيار والمدة الأنسب لاحتياجاتك.',
       select: 'اختيار',
       selected: 'تم الاختيار',
-      mostWanted: 'الأكثر طلباً',
+      mostWanted: 'الأكثر حجزاً',
     },
 
     schedule: {

@@ -1,8 +1,8 @@
 export const en = {
   meta: {
-    siteName: 'Dr. Dalia',
+    siteName: 'Dr. Dalia Ghozlan',
     home: {
-      title: 'Dr. Dalia — Premium Medical Consultations',
+      title: 'Dr. Dalia Ghozlan — Premium Medical Consultations',
       description:
         'Personalized, compassionate medical consultations with Dr. Dalia. Book a private online or in-person consultation for trusted, expert care.',
     },
@@ -254,7 +254,7 @@ export const en = {
       subtitle: 'Select the duration option that best fits your needs.',
       select: 'Select',
       selected: 'Selected',
-      mostWanted: 'Most Wanted',
+      mostWanted: 'Most Booked',
     },
 
     schedule: {
@@ -446,9 +446,9 @@ export const en = {
 type WidenStrings<T> = T extends string
   ? string
   : T extends readonly (infer U)[]
-    ? readonly WidenStrings<U>[]
-    : T extends object
-      ? { [K in keyof T]: WidenStrings<T[K]> }
-      : T
+  ? readonly WidenStrings<U>[]
+  : T extends object
+  ? { [K in keyof T]: WidenStrings<T[K]> }
+  : T
 
 export type Dictionary = WidenStrings<typeof en>
