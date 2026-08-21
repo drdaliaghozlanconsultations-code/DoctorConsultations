@@ -174,6 +174,67 @@ export async function createCalendarEvent(
 }
 
 /**
+ * Update an existing Google Calendar event when an appointment is rescheduled.
+ */
+export async function updateCalendarEvent(
+  eventId: string,
+  input: Partial<CalendarEventInput>,
+): Promise<{ eventId: string; eventLink: string; meetLink?: string } | null> {
+  if (!eventId) return null
+
+  try {
+    const calendar = await getOAuthCalendarClient()
+
+    const requestBody: any = {}
+
+    if (input.summary) requestBody.summary = input.summary
+    if (input.description) requestBody.description = input.description
+
+    if (input.date && input.time) {
+      const startDateTime = `${input.date}T${input.time}:00`
+      const durationMinutes = input.durationMinutes || 30
+      const startDate = new Date(`${input.date}T${input.time}:00`)
+      startDate.setMinutes(startDate.getMinutes() + durationMinutes)
+      const endHours = String(startDate.getHours()).padStart(2, '0')
+      const endMinutes = String(startDate.getMinutes()).padStart(2, '0')
+      const endDateTime = `${input.date}T${endHours}:${endMinutes}:00`
+
+      requestBody.start = {
+        dateTime: startDateTime,
+        timeZone: 'Africa/Cairo',
+      }
+      requestBody.end = {
+        dateTime: endDateTime,
+        timeZone: 'Africa/Cairo',
+      }
+    }
+
+    const res = await calendar.events.patch({
+      calendarId: 'primary',
+      eventId,
+      sendUpdates: 'all', // Notifies the patient of the rescheduled time
+      requestBody,
+    })
+
+    const eventData = res.data
+    const meetLink =
+      eventData.conferenceData?.entryPoints?.find((ep) => ep.entryPointType === 'video')?.uri ||
+      eventData.conferenceData?.entryPoints?.[0]?.uri ||
+      eventData.hangoutLink ||
+      undefined
+
+    return {
+      eventId: eventData.id || eventId,
+      eventLink: eventData.htmlLink || '',
+      meetLink,
+    }
+  } catch (error: any) {
+    console.error('Failed to update Google Calendar event:', error.message)
+    return null
+  }
+}
+
+/**
  * Delete a Google Calendar event by its event ID when a booking is cancelled.
  */
 export async function deleteCalendarEvent(eventId: string): Promise<void> {
@@ -190,3 +251,4 @@ export async function deleteCalendarEvent(eventId: string): Promise<void> {
     console.error('Failed to delete Google Calendar event:', error.message)
   }
 }
+

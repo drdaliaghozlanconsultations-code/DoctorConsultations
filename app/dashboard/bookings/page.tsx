@@ -5,14 +5,17 @@ import { BookingsManager } from '@/components/dashboard/bookings-manager'
 
 export const dynamic = 'force-dynamic'
 
+const PAGE_SIZE = 15
+
 export default async function BookingsDashboardPage() {
   const session = await verifySession()
 
   const bookingsCollection = await getBookingsCollection()
   const consultationsCollection = await getConsultationsCollection()
 
-  const [bookingsDocs, consultationsDocs] = await Promise.all([
-    bookingsCollection.find({}).sort({ createdAt: -1 }).toArray(),
+  const [totalCount, bookingsDocs, consultationsDocs] = await Promise.all([
+    bookingsCollection.countDocuments({}),
+    bookingsCollection.find({}).sort({ createdAt: -1 }).limit(PAGE_SIZE).toArray(),
     consultationsCollection.find({ isActive: true }).sort({ sortOrder: 1 }).toArray(),
   ])
 
@@ -29,6 +32,8 @@ export default async function BookingsDashboardPage() {
   return (
     <BookingsManager
       initialBookings={initialBookings}
+      initialTotalCount={totalCount}
+      initialTotalPages={Math.ceil(totalCount / PAGE_SIZE)}
       consultations={consultations}
       userRole={session.role}
     />

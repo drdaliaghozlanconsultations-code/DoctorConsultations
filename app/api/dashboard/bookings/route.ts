@@ -2,11 +2,11 @@ import { NextResponse } from 'next/server'
 import { ObjectId } from 'mongodb'
 import { getBookingsCollection, getPaymentProcessesCollection, getConsultationsCollection } from '@/lib/db'
 import { getSession } from '@/lib/auth/session'
-import { createCalendarEvent, deleteCalendarEvent } from '@/lib/google-calendar'
+import { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent } from '@/lib/google-calendar'
 
 export const dynamic = 'force-dynamic'
 
-// GET: List bookings with filters (admin + staff)
+// GET: List bookings with filters + server-side pagination (admin + staff)
 export async function GET(request: Request) {
   try {
     const session = await getSession()
@@ -21,6 +21,8 @@ export async function GET(request: Request) {
     const status = searchParams.get('status')
     const search = searchParams.get('search')
     const date = searchParams.get('date')
+    const page = Math.max(1, Number(searchParams.get('page')) || 1)
+    const limit = Math.min(100, Math.max(1, Number(searchParams.get('limit')) || 15))
 
     const query: any = {}
 
@@ -42,17 +44,30 @@ export async function GET(request: Request) {
     }
 
     const bookingsCollection = await getBookingsCollection()
-    const items = await bookingsCollection
-      .find(query)
-      .sort({ createdAt: -1 })
-      .toArray()
+
+    const [totalCount, items] = await Promise.all([
+      bookingsCollection.countDocuments(query),
+      bookingsCollection
+        .find(query)
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .toArray(),
+    ])
 
     const formatted = items.map((doc) => ({
       ...doc,
       _id: doc._id?.toString(),
     }))
 
-    return NextResponse.json({ success: true, data: formatted })
+    return NextResponse.json({
+      success: true,
+      data: formatted,
+      page,
+      limit,
+      totalCount,
+      totalPages: Math.ceil(totalCount / limit),
+    })
   } catch (error: any) {
     return NextResponse.json(
       { success: false, error: error.message || 'Failed to fetch bookings' },
@@ -94,16 +109,55 @@ export async function POST(request: Request) {
     }
 
     let consultationTitle = { en: 'Direct Booking', ar: 'حجز مباشر' }
+    let durationMinutes = 30
     if (consultationId) {
       try {
         const consultCol = await getConsultationsCollection()
         const c = await consultCol.findOne({ _id: new ObjectId(consultationId) })
-        if (c) consultationTitle = c.title
+        if (c) {
+          consultationTitle = c.title
+          if (c.durationMinutes) durationMinutes = c.durationMinutes
+        }
       } catch {}
     }
 
     const reference = `DR.DALIA-${Math.floor(100000 + Math.random() * 900000)}`
     const bookingsCollection = await getBookingsCollection()
+
+    let googleMeetLink = ''
+    let googleCalendarEventId = ''
+    let googleCalendarEventLink = ''
+
+    // If adding directly as confirmed, auto-generate Google Calendar & Meet
+    if (status === 'confirmed') {
+      try {
+        const calendarResult = await createCalendarEvent({
+          summary: `Dr. Dalia Ghozlan - ${consultationTitle.en} with ${patientName.trim()}`,
+          description: [
+            `Patient: ${patientName.trim()}`,
+            `Email: ${email?.trim() || ''}`,
+            `Phone: ${phone.trim()}`,
+            `WhatsApp: ${(whatsapp || phone).trim()}`,
+            `Consultation: ${consultationTitle.en}`,
+            `Reference: ${reference}`,
+            notes ? `Notes: ${notes.trim()}` : '',
+          ]
+            .filter(Boolean)
+            .join('\n'),
+          date,
+          time,
+          durationMinutes,
+          patientEmail: email?.trim() || undefined,
+          patientName: patientName.trim(),
+        })
+
+        googleMeetLink = calendarResult.meetLink
+        googleCalendarEventId = calendarResult.eventId
+        googleCalendarEventLink = calendarResult.eventLink
+      } catch (calErr: any) {
+        console.error('Manual booking calendar creation failed:', calErr.message)
+      }
+    }
 
     const newDoc = {
       reference,
@@ -122,6 +176,9 @@ export async function POST(request: Request) {
       amount: Number(amount) || 0,
       currency: (currency === 'USD' ? 'USD' : 'EGP') as 'EGP' | 'USD',
       paymentStatus,
+      googleMeetLink,
+      googleCalendarEventId,
+      googleCalendarEventLink,
       verifiedBy: session.username,
       verifiedAt: new Date(),
       createdAt: new Date(),
@@ -142,7 +199,7 @@ export async function POST(request: Request) {
   }
 }
 
-// PATCH: Update booking status or verify receipt (admin + staff)
+// PATCH: Update booking status, reschedule date/time, verify receipt (admin + staff)
 export async function PATCH(request: Request) {
   try {
     const session = await getSession()
@@ -151,10 +208,28 @@ export async function PATCH(request: Request) {
     }
 
     const body = await request.json()
-    const { id, status, paymentStatus, notes } = body
+    const {
+      id,
+      status,
+      paymentStatus,
+      date,
+      time,
+      patientName,
+      phone,
+      whatsapp,
+      email,
+      notes,
+    } = body
 
     if (!id) {
       return NextResponse.json({ success: false, error: 'Booking ID is required' }, { status: 400 })
+    }
+
+    const bookingsCollection = await getBookingsCollection()
+    const existingBooking = await bookingsCollection.findOne({ _id: new ObjectId(id) })
+
+    if (!existingBooking) {
+      return NextResponse.json({ success: false, error: 'Booking not found' }, { status: 404 })
     }
 
     const updateDoc: any = {
@@ -171,88 +246,102 @@ export async function PATCH(request: Request) {
       updateDoc.verifiedAt = new Date()
     }
 
-    if (notes !== undefined) {
-      updateDoc.notes = notes
+    if (date) updateDoc.date = date
+    if (time) updateDoc.time = time
+    if (patientName) updateDoc.patientName = patientName.trim()
+    if (phone) updateDoc.phone = phone.trim()
+    if (whatsapp !== undefined) updateDoc.whatsapp = whatsapp.trim()
+    if (email !== undefined) updateDoc.email = email.trim()
+    if (notes !== undefined) updateDoc.notes = notes
+
+    const targetDate = date || existingBooking.date
+    const targetTime = time || existingBooking.time
+    const targetPatientName = patientName || existingBooking.patientName
+    const targetEmail = email !== undefined ? email : existingBooking.email
+    const targetPhone = phone || existingBooking.phone
+    const targetWhatsapp = whatsapp || existingBooking.whatsapp
+
+    // Lookup consultation duration
+    let durationMinutes = 30
+    if (existingBooking.consultationId) {
+      try {
+        const consultCol = await getConsultationsCollection()
+        const consultation = await consultCol.findOne({
+          _id: new ObjectId(existingBooking.consultationId),
+        })
+        if (consultation?.durationMinutes) {
+          durationMinutes = consultation.durationMinutes
+        }
+      } catch {}
     }
 
-    // If confirming → create Google Calendar event with Meet link
-    if (status === 'confirmed') {
+    const consultTitle = existingBooking.consultationTitle?.en || 'Medical Consultation'
+
+    // Case 1: Status changed to 'confirmed' and no calendar event exists yet
+    if (status === 'confirmed' && !existingBooking.googleCalendarEventId) {
       try {
-        const bookingsCollection = await getBookingsCollection()
-        const booking = await bookingsCollection.findOne({ _id: new ObjectId(id) })
+        const calendarResult = await createCalendarEvent({
+          summary: `Dr. Dalia Ghozlan - ${consultTitle} with ${targetPatientName}`,
+          description: [
+            `Patient: ${targetPatientName}`,
+            `Email: ${targetEmail}`,
+            `Phone: ${targetPhone}`,
+            `WhatsApp: ${targetWhatsapp}`,
+            `Consultation: ${consultTitle}`,
+            `Reference: ${existingBooking.reference}`,
+            updateDoc.notes ?? existingBooking.notes ? `Notes: ${updateDoc.notes ?? existingBooking.notes}` : '',
+          ]
+            .filter(Boolean)
+            .join('\n'),
+          date: targetDate,
+          time: targetTime,
+          durationMinutes,
+          patientEmail: targetEmail || undefined,
+          patientName: targetPatientName,
+        })
 
-        if (booking) {
-          // Lookup consultation to get duration
-          let durationMinutes = 30 // default
-          if (booking.consultationId) {
-            try {
-              const consultCol = await getConsultationsCollection()
-              const consultation = await consultCol.findOne({
-                _id: new ObjectId(booking.consultationId),
-              })
-              if (consultation) {
-                durationMinutes = consultation.durationMinutes
-              }
-            } catch {
-              // use default duration
-            }
-          }
-
-          const consultTitle =
-            booking.consultationTitle?.en || 'Medical Consultation'
-
-          const calendarResult = await createCalendarEvent({
-            summary: `Dr. Dalia Ghozlan - ${consultTitle} with ${booking.patientName}`,
-            description: [
-              `Patient: ${booking.patientName}`,
-              `Email: ${booking.email}`,
-              `Phone: ${booking.phone}`,
-              `WhatsApp: ${booking.whatsapp}`,
-              `Consultation: ${consultTitle}`,
-              `Reference: ${booking.reference}`,
-              booking.notes ? `Notes: ${booking.notes}` : '',
-            ]
-              .filter(Boolean)
-              .join('\n'),
-            date: booking.date,
-            time: booking.time,
-            durationMinutes,
-            patientEmail: booking.email || undefined,
-            patientName: booking.patientName,
-          })
-
-          updateDoc.googleMeetLink = calendarResult.meetLink
-          updateDoc.googleCalendarEventId = calendarResult.eventId
-          updateDoc.googleCalendarEventLink = calendarResult.eventLink
-        }
+        updateDoc.googleMeetLink = calendarResult.meetLink
+        updateDoc.googleCalendarEventId = calendarResult.eventId
+        updateDoc.googleCalendarEventLink = calendarResult.eventLink
       } catch (calError: any) {
         console.error('Google Calendar event creation failed:', calError.message)
-        // Don't block the confirmation — calendar is a nice-to-have
       }
     }
 
-    // If cancelling → delete the Google Calendar event
-    if (status === 'cancelled') {
+    // Case 2: Rescheduled (date or time changed) on an already confirmed booking with Google Calendar event
+    if ((date || time) && existingBooking.googleCalendarEventId && status !== 'cancelled') {
       try {
-        const bookingsCollection = await getBookingsCollection()
-        const booking = await bookingsCollection.findOne({ _id: new ObjectId(id) })
-
-        if (booking?.googleCalendarEventId) {
-          await deleteCalendarEvent(booking.googleCalendarEventId)
-          updateDoc.googleMeetLink = ''
-          updateDoc.googleCalendarEventId = ''
-          updateDoc.googleCalendarEventLink = ''
+        const updatedCal = await updateCalendarEvent(existingBooking.googleCalendarEventId, {
+          date: targetDate,
+          time: targetTime,
+          durationMinutes,
+          summary: `Dr. Dalia Ghozlan - ${consultTitle} with ${targetPatientName}`,
+        })
+        if (updatedCal?.meetLink) {
+          updateDoc.googleMeetLink = updatedCal.meetLink
         }
+      } catch (calError: any) {
+        console.error('Failed to sync rescheduled date/time with Google Calendar:', calError.message)
+      }
+    }
+
+    // Case 3: Cancelled → remove Google Calendar event
+    if (status === 'cancelled' && existingBooking.googleCalendarEventId) {
+      try {
+        await deleteCalendarEvent(existingBooking.googleCalendarEventId)
+        updateDoc.googleMeetLink = ''
+        updateDoc.googleCalendarEventId = ''
+        updateDoc.googleCalendarEventLink = ''
       } catch (calError: any) {
         console.error('Google Calendar event deletion failed:', calError.message)
       }
     }
 
-    const bookingsCollection = await getBookingsCollection()
     const result = await bookingsCollection.updateOne(
       { _id: new ObjectId(id) },
       { $set: updateDoc },
     )
+
 
     if (result.matchedCount === 0) {
       return NextResponse.json({ success: false, error: 'Booking not found' }, { status: 404 })

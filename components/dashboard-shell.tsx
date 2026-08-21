@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard,
   CalendarCheck2,
+  CalendarDays,
   Stethoscope,
   BarChart3,
   Users2,
@@ -51,6 +52,12 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
       name: 'Overview',
       href: '/dashboard',
       icon: LayoutDashboard,
+      adminOnly: false,
+    },
+    {
+      name: 'Working Hours & Schedule',
+      href: '/dashboard/availability',
+      icon: CalendarDays,
       adminOnly: false,
     },
     {

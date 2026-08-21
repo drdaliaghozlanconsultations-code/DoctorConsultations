@@ -15,6 +15,13 @@ export default async function DashboardPage() {
   const now = new Date()
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
 
+  const todayDateStr = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Africa/Cairo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(now)
+
   const [
     pendingBookings,
     confirmedBookings,
@@ -23,6 +30,7 @@ export default async function DashboardPage() {
     visitsToday,
     totalVisits,
     recentBookingsDocs,
+    todayBookingsDocs,
   ] = await Promise.all([
     bookingsCollection.countDocuments({ status: 'pending' }),
     bookingsCollection.countDocuments({ status: 'confirmed' }),
@@ -31,6 +39,7 @@ export default async function DashboardPage() {
     visitsCollection.countDocuments({ timestamp: { $gte: startOfToday } }),
     visitsCollection.countDocuments({}),
     bookingsCollection.find({}).sort({ createdAt: -1 }).limit(6).toArray(),
+    bookingsCollection.find({ date: todayDateStr }).sort({ time: 1 }).toArray(),
   ])
 
   const initialStats = {
@@ -40,6 +49,11 @@ export default async function DashboardPage() {
     activeSessions,
     visitsToday,
     totalVisits,
+    todayDate: todayDateStr,
+    todayBookings: todayBookingsDocs.map((b): BookingItem => ({
+      ...b,
+      _id: b._id?.toString() || '',
+    })),
     recentBookings: recentBookingsDocs.map((b): BookingItem => ({
       ...b,
       _id: b._id?.toString() || '',

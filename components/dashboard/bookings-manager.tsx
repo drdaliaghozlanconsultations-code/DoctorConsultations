@@ -1,9 +1,11 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import {
   Search,
   Filter,
+  ChevronLeft,
+  ChevronRight,
   Plus,
   CheckCircle2,
   XCircle,
@@ -11,6 +13,8 @@ import {
   Eye,
   Trash2,
   Calendar,
+  CalendarClock,
+  Edit2,
   Phone,
   Mail,
   MessageSquare,
@@ -20,15 +24,19 @@ import {
   RefreshCw,
   Video,
 } from 'lucide-react'
-import type { BookingItem, ConsultationItem, UserRole } from '@/lib/db'
+import type { BookingItem, ConsultationItem, UserRole, BookingStatus } from '@/lib/db'
+
+const PAGE_SIZE = 15
 
 interface BookingsManagerProps {
   initialBookings: BookingItem[]
+  initialTotalCount: number
+  initialTotalPages: number
   consultations: ConsultationItem[]
   userRole: UserRole
 }
 
-export function BookingsManager({ initialBookings, consultations, userRole }: BookingsManagerProps) {
+export function BookingsManager({ initialBookings, initialTotalCount, initialTotalPages, consultations, userRole }: BookingsManagerProps) {
   const [bookings, setBookings] = useState(initialBookings)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
@@ -37,6 +45,24 @@ export function BookingsManager({ initialBookings, consultations, userRole }: Bo
   const [selectedReceipt, setSelectedReceipt] = useState<string | null>(null)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalCount, setTotalCount] = useState(initialTotalCount)
+  const [totalPages, setTotalPages] = useState(initialTotalPages)
+
+  // Edit / Reschedule Modal State
+  const [editingBooking, setEditingBooking] = useState<BookingItem | null>(null)
+  const [editDate, setEditDate] = useState('')
+  const [editTime, setEditTime] = useState('')
+  const [editPatientName, setEditPatientName] = useState('')
+  const [editPhone, setEditPhone] = useState('')
+  const [editWhatsapp, setEditWhatsapp] = useState('')
+  const [editEmail, setEditEmail] = useState('')
+  const [editNotes, setEditNotes] = useState('')
+  const [editStatus, setEditStatus] = useState<BookingStatus>('confirmed')
+  const [editLoading, setEditLoading] = useState(false)
+  const [editError, setEditError] = useState<string | null>(null)
 
   // Add Booking Form State
   const [patientName, setPatientName] = useState('')
@@ -55,24 +81,61 @@ export function BookingsManager({ initialBookings, consultations, userRole }: Bo
 
   const isAdmin = userRole === 'admin'
 
-  const fetchBookings = async () => {
+  const fetchBookings = useCallback(async (page = currentPage) => {
     setRefreshing(true)
     try {
       const params = new URLSearchParams()
       if (statusFilter !== 'all') params.set('status', statusFilter)
       if (search) params.set('search', search)
       if (dateFilter) params.set('date', dateFilter)
+      params.set('page', String(page))
+      params.set('limit', String(PAGE_SIZE))
 
       const res = await fetch(`/api/dashboard/bookings?${params.toString()}`)
       const data = await res.json()
       if (data.success) {
         setBookings(data.data)
+        setTotalCount(data.totalCount ?? 0)
+        setTotalPages(data.totalPages ?? 1)
+        setCurrentPage(data.page ?? 1)
       }
     } catch (err) {
       console.error('Failed to fetch bookings:', err)
     } finally {
       setRefreshing(false)
     }
+  }, [currentPage, statusFilter, search, dateFilter])
+
+  // Re-fetch when filters change (reset to page 1)
+  const searchTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+  const prevFiltersRef = React.useRef({ statusFilter, dateFilter, search })
+
+  useEffect(() => {
+    const prev = prevFiltersRef.current
+    // Only trigger if filters actually changed (not on initial mount)
+    if (
+      prev.statusFilter === statusFilter &&
+      prev.dateFilter === dateFilter &&
+      prev.search === search
+    ) return
+    prevFiltersRef.current = { statusFilter, dateFilter, search }
+
+    // Debounce search input
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
+    searchTimeoutRef.current = setTimeout(() => {
+      setCurrentPage(1)
+      fetchBookings(1)
+    }, search ? 400 : 0)
+
+    return () => {
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
+    }
+  }, [statusFilter, dateFilter, search, fetchBookings])
+
+  const goToPage = (page: number) => {
+    if (page < 1 || page > totalPages || page === currentPage) return
+    setCurrentPage(page)
+    fetchBookings(page)
   }
 
   const handleUpdateStatus = async (
@@ -102,6 +165,73 @@ export function BookingsManager({ initialBookings, consultations, userRole }: Bo
     }
   }
 
+  const openEditModal = (b: BookingItem) => {
+    setEditingBooking(b)
+    setEditDate(b.date || '')
+    setEditTime(b.time || '10:00')
+    setEditPatientName(b.patientName || '')
+    setEditPhone(b.phone || '')
+    setEditWhatsapp(b.whatsapp || '')
+    setEditEmail(b.email || '')
+    setEditNotes(b.notes || '')
+    setEditStatus(b.status || 'confirmed')
+    setEditError(null)
+  }
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingBooking) return
+    setEditLoading(true)
+    setEditError(null)
+
+    try {
+      const res = await fetch('/api/dashboard/bookings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editingBooking._id,
+          date: editDate,
+          time: editTime,
+          patientName: editPatientName,
+          phone: editPhone,
+          whatsapp: editWhatsapp,
+          email: editEmail,
+          notes: editNotes,
+          status: editStatus,
+        }),
+      })
+
+      const data = await res.json()
+      if (data.success) {
+        setBookings((prev) =>
+          prev.map((b) =>
+            b._id === editingBooking._id
+              ? {
+                  ...b,
+                  date: editDate,
+                  time: editTime,
+                  patientName: editPatientName,
+                  phone: editPhone,
+                  whatsapp: editWhatsapp,
+                  email: editEmail,
+                  notes: editNotes,
+                  status: editStatus,
+                  googleMeetLink: data.meetLink || b.googleMeetLink,
+                }
+              : b,
+          ),
+        )
+        setEditingBooking(null)
+      } else {
+        setEditError(data.error || 'Failed to update booking')
+      }
+    } catch (err: any) {
+      setEditError(err.message || 'Failed to update booking')
+    } finally {
+      setEditLoading(false)
+    }
+  }
+
   const handleDelete = async (id: string) => {
     if (!isAdmin) return
     if (!confirm('Are you sure you want to permanently delete this booking?')) return
@@ -120,6 +250,7 @@ export function BookingsManager({ initialBookings, consultations, userRole }: Bo
       alert('Failed to delete')
     }
   }
+
 
   const handleAddBooking = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -169,19 +300,8 @@ export function BookingsManager({ initialBookings, consultations, userRole }: Bo
     }
   }
 
-  const filteredBookings = bookings.filter((b) => {
-    if (statusFilter !== 'all' && b.status !== statusFilter) return false
-    if (dateFilter && b.date !== dateFilter) return false
-    if (search) {
-      const q = search.toLowerCase()
-      const matchName = b.patientName?.toLowerCase().includes(q)
-      const matchEmail = b.email?.toLowerCase().includes(q)
-      const matchPhone = b.phone?.includes(q)
-      const matchRef = b.reference?.toLowerCase().includes(q)
-      if (!matchName && !matchEmail && !matchPhone && !matchRef) return false
-    }
-    return true
-  })
+  // Bookings are already server-filtered and paginated
+  const filteredBookings = bookings
 
   return (
     <div className="space-y-8">
@@ -202,7 +322,7 @@ export function BookingsManager({ initialBookings, consultations, userRole }: Bo
 
           <button
             type="button"
-            onClick={fetchBookings}
+            onClick={() => fetchBookings(currentPage)}
             disabled={refreshing}
             className="p-2.5 rounded-full border border-border bg-card text-foreground hover:bg-muted transition-colors text-xs font-semibold inline-flex items-center gap-1.5"
             title="Refresh bookings"
@@ -431,6 +551,15 @@ export function BookingsManager({ initialBookings, consultations, userRole }: Bo
                           </>
                         )}
 
+                        <button
+                          type="button"
+                          onClick={() => openEditModal(b)}
+                          className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                          title="Edit & Reschedule Appointment"
+                        >
+                          <Edit2 className="size-4" />
+                        </button>
+
                         {isAdmin && (
                           <button
                             type="button"
@@ -447,6 +576,79 @@ export function BookingsManager({ initialBookings, consultations, userRole }: Bo
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-border px-6 py-4">
+            <div className="text-xs text-muted-foreground">
+              Showing{' '}
+              <span className="font-semibold text-foreground">
+                {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, totalCount)}
+              </span>{' '}
+              of <span className="font-semibold text-foreground">{totalCount}</span> bookings
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              {/* Previous */}
+              <button
+                type="button"
+                disabled={currentPage <= 1 || refreshing}
+                onClick={() => goToPage(currentPage - 1)}
+                className="inline-flex items-center justify-center size-9 rounded-xl border border-border bg-card text-foreground hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                title="Previous page"
+              >
+                <ChevronLeft className="size-4" />
+              </button>
+
+              {/* Page numbers */}
+              {(() => {
+                const pages: (number | 'ellipsis')[] = []
+                const maxVisible = 5
+                if (totalPages <= maxVisible + 2) {
+                  for (let i = 1; i <= totalPages; i++) pages.push(i)
+                } else {
+                  pages.push(1)
+                  const start = Math.max(2, currentPage - 1)
+                  const end = Math.min(totalPages - 1, currentPage + 1)
+                  if (start > 2) pages.push('ellipsis')
+                  for (let i = start; i <= end; i++) pages.push(i)
+                  if (end < totalPages - 1) pages.push('ellipsis')
+                  pages.push(totalPages)
+                }
+                return pages.map((p, idx) =>
+                  p === 'ellipsis' ? (
+                    <span key={`ellipsis-${idx}`} className="px-1 text-muted-foreground text-xs select-none">…</span>
+                  ) : (
+                    <button
+                      key={p}
+                      type="button"
+                      disabled={refreshing}
+                      onClick={() => goToPage(p)}
+                      className={`inline-flex items-center justify-center size-9 rounded-xl text-xs font-semibold transition-all ${
+                        p === currentPage
+                          ? 'bg-primary text-primary-foreground shadow-sm'
+                          : 'border border-border bg-card text-foreground hover:bg-muted'
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  ),
+                )
+              })()}
+
+              {/* Next */}
+              <button
+                type="button"
+                disabled={currentPage >= totalPages || refreshing}
+                onClick={() => goToPage(currentPage + 1)}
+                className="inline-flex items-center justify-center size-9 rounded-xl border border-border bg-card text-foreground hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                title="Next page"
+              >
+                <ChevronRight className="size-4" />
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -493,6 +695,166 @@ export function BookingsManager({ initialBookings, consultations, userRole }: Bo
                 <ExternalLink className="size-3" />
               </a>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal for Edit & Reschedule Booking */}
+      {editingBooking && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs overflow-y-auto">
+          <div className="bg-card rounded-[2.5rem] border border-border p-6 sm:p-8 max-w-lg w-full relative shadow-2xl my-8">
+            <div className="flex items-center justify-between pb-4 border-b border-border">
+              <div>
+                <h3 className="font-serif text-lg font-bold text-foreground">
+                  Edit & Reschedule Appointment
+                </h3>
+                <p className="text-xs font-mono text-primary mt-0.5">
+                  {editingBooking.reference} — {editingBooking.consultationTitle?.en}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingBooking(null)}
+                className="text-muted-foreground hover:text-foreground text-sm font-semibold p-1"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} className="space-y-4 mt-6">
+              {editError && (
+                <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-3.5 text-xs font-medium text-destructive">
+                  {editError}
+                </div>
+              )}
+
+              {/* Reschedule Date & Time */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-muted/30 p-4 rounded-2xl border border-border">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                    Appointment Date *
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={editDate}
+                    onChange={(e) => setEditDate(e.target.value)}
+                    className="w-full rounded-xl border border-border bg-background p-2.5 text-sm focus:border-primary focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                    Time Slot *
+                  </label>
+                  <input
+                    type="time"
+                    required
+                    value={editTime}
+                    onChange={(e) => setEditTime(e.target.value)}
+                    className="w-full rounded-xl border border-border bg-background p-2.5 text-sm focus:border-primary focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Patient Info */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                    Patient Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editPatientName}
+                    onChange={(e) => setEditPatientName(e.target.value)}
+                    className="w-full rounded-2xl border border-border bg-background p-3 text-sm focus:border-primary focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                    Status
+                  </label>
+                  <select
+                    value={editStatus}
+                    onChange={(e) => setEditStatus(e.target.value as BookingStatus)}
+                    className="w-full rounded-2xl border border-border bg-background p-3 text-sm focus:border-primary focus:outline-none"
+                  >
+                    <option value="pending">Pending</option>
+                    <option value="confirmed">Confirmed</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Phone & Email */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                    Phone
+                  </label>
+                  <input
+                    type="tel"
+                    value={editPhone}
+                    onChange={(e) => setEditPhone(e.target.value)}
+                    className="w-full rounded-2xl border border-border bg-background p-3 text-sm focus:border-primary focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={editEmail}
+                    onChange={(e) => setEditEmail(e.target.value)}
+                    className="w-full rounded-2xl border border-border bg-background p-3 text-sm focus:border-primary focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                  Notes
+                </label>
+                <textarea
+                  rows={2}
+                  value={editNotes}
+                  onChange={(e) => setEditNotes(e.target.value)}
+                  className="w-full rounded-2xl border border-border bg-background p-3 text-sm focus:border-primary focus:outline-none"
+                />
+              </div>
+
+              {editingBooking.googleCalendarEventId && (
+                <div className="rounded-2xl border border-blue-500/20 bg-blue-500/10 p-3 text-xs text-blue-600 dark:text-blue-400 flex items-center gap-2">
+                  <CalendarClock className="size-4 shrink-0" />
+                  <span>
+                    Google Calendar is connected. Updating date/time will automatically reschedule the Google Meet and notify the patient.
+                  </span>
+                </div>
+              )}
+
+              {/* Submit Buttons */}
+              <div className="pt-4 flex items-center justify-end gap-3 border-t border-border mt-6">
+                <button
+                  type="button"
+                  onClick={() => setEditingBooking(null)}
+                  className="px-5 py-2.5 rounded-full border border-border text-sm font-medium text-foreground hover:bg-muted"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={editLoading}
+                  className="px-6 py-2.5 rounded-full bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 shadow-md disabled:opacity-50"
+                >
+                  {editLoading ? 'Saving...' : 'Save & Reschedule'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
@@ -720,3 +1082,4 @@ export function BookingsManager({ initialBookings, consultations, userRole }: Bo
     </div>
   )
 }
+

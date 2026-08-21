@@ -137,3 +137,43 @@ export async function getSettingsCollection() {
   return db.collection<SettingDoc>('settings')
 }
 
+export interface BreakInterval {
+  id: string
+  start: string // HH:mm
+  end: string // HH:mm
+  label?: string // e.g. "Lunch", "Rounds"
+}
+
+export interface DaySchedule {
+  enabled: boolean
+  startTime: string // HH:mm
+  endTime: string // HH:mm
+  breaks: BreakInterval[]
+}
+
+export interface AvailabilitySettings {
+  weeklySchedule: Record<number, DaySchedule>
+  slotIntervalMinutes: number
+}
+
+export type DateOverrideType = 'closed' | 'open' | 'custom'
+
+export interface DateOverrideDoc {
+  _id?: ObjectId
+  date: string // YYYY-MM-DD
+  type: DateOverrideType
+  startTime?: string // HH:mm (for 'open' or 'custom')
+  endTime?: string // HH:mm
+  breaks?: BreakInterval[]
+  reason?: string // e.g. "Public Holiday", "Special Evening Shift"
+  createdAt: Date
+  updatedAt: Date
+}
+
+export type DateOverrideItem = Omit<DateOverrideDoc, '_id'> & { _id: string }
+
+export async function getDateOverridesCollection() {
+  const db = await getDb()
+  return db.collection<DateOverrideDoc>('date_overrides')
+}
+

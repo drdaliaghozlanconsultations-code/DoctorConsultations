@@ -1,13 +1,7 @@
-/**
- * Placeholder availability generator.
- * In production this would come from a calendar/scheduling backend
- * (e.g. Google Calendar). Here we deterministically generate slots so the
- * booking UI has realistic available/unavailable states.
- */
-
 export interface DayAvailability {
   date: string // YYYY-MM-DD
   hasSlots: boolean
+  reason?: string
 }
 
 export interface TimeSlot {
@@ -15,69 +9,109 @@ export interface TimeSlot {
   available: boolean
 }
 
-function toISODate(d: Date): string {
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
+export interface BreakInterval {
+  id: string
+  start: string // HH:mm
+  end: string // HH:mm
+  label?: string // e.g. "Lunch", "Rounds"
 }
 
-/** Next `count` selectable days starting tomorrow. Fridays are closed. */
-export function getUpcomingDays(count = 14): DayAvailability[] {
-  const days: DayAvailability[] = []
-  const start = new Date()
-  start.setHours(0, 0, 0, 0)
-  let offset = 1
-  while (days.length < count) {
-    const d = new Date(start)
-    d.setDate(start.getDate() + offset)
-    offset++
-    const weekday = d.getDay() // 0 Sun ... 5 Fri 6 Sat
-    const closed = weekday === 5 // clinic closed on Friday
-    days.push({ date: toISODate(d), hasSlots: !closed })
-  }
-  return days
+export interface DaySchedule {
+  enabled: boolean
+  startTime: string // HH:mm
+  endTime: string // HH:mm
+  breaks: BreakInterval[]
 }
 
-/** Deterministic pseudo-random based on a string seed. */
-function seeded(seed: string): number {
-  let h = 0
-  for (let i = 0; i < seed.length; i++) {
-    h = (h << 5) - h + seed.charCodeAt(i)
-    h |= 0
-  }
-  return Math.abs(h)
+export interface AvailabilitySettings {
+  weeklySchedule: Record<number, DaySchedule>
+  slotIntervalMinutes: number
 }
 
-const BASE_TIMES = [
-  '09:00',
-  '09:30',
-  '10:00',
-  '10:30',
-  '11:00',
-  '11:30',
-  '13:00',
-  '13:30',
-  '14:00',
-  '14:30',
-  '15:00',
-  '16:00',
-  '17:00',
-]
+export type DateOverrideType = 'closed' | 'open' | 'custom'
 
-export function getSlotsForDate(date: string): TimeSlot[] {
-  const base = seeded(date)
-  return BASE_TIMES.map((time, i) => {
-    // deterministically mark some slots unavailable
-    const available = (base + i * 7) % 3 !== 0
-    return { time, available }
-  })
+export interface DateOverrideItem {
+  _id?: string
+  date: string // YYYY-MM-DD
+  type: DateOverrideType
+  startTime?: string // HH:mm (for 'open' or 'custom')
+  endTime?: string // HH:mm
+  breaks?: BreakInterval[]
+  reason?: string // e.g. "Public Holiday", "Special Evening Shift"
+  createdAt?: Date
+  updatedAt?: Date
+}
+
+/**
+ * Default schedule fallback.
+ * Sunday (0) to Thursday (4): 09:00 - 17:00 (with 13:00 - 14:00 lunch break)
+ * Friday (5): Closed (Vacation / Weekend)
+ * Saturday (6): 10:00 - 15:00
+ */
+export const DEFAULT_WEEKLY_SCHEDULE: Record<number, DaySchedule> = {
+  0: {
+    enabled: true,
+    startTime: '09:00',
+    endTime: '17:00',
+    breaks: [{ id: 'b0-1', start: '13:00', end: '14:00', label: 'Lunch Break' }],
+  },
+  1: {
+    enabled: true,
+    startTime: '09:00',
+    endTime: '17:00',
+    breaks: [{ id: 'b1-1', start: '13:00', end: '14:00', label: 'Lunch Break' }],
+  },
+  2: {
+    enabled: true,
+    startTime: '09:00',
+    endTime: '17:00',
+    breaks: [{ id: 'b2-1', start: '13:00', end: '14:00', label: 'Lunch Break' }],
+  },
+  3: {
+    enabled: true,
+    startTime: '09:00',
+    endTime: '17:00',
+    breaks: [{ id: 'b3-1', start: '13:00', end: '14:00', label: 'Lunch Break' }],
+  },
+  4: {
+    enabled: true,
+    startTime: '09:00',
+    endTime: '16:00',
+    breaks: [{ id: 'b4-1', start: '13:00', end: '14:00', label: 'Lunch Break' }],
+  },
+  5: {
+    enabled: false, // Friday closed
+    startTime: '09:00',
+    endTime: '17:00',
+    breaks: [],
+  },
+  6: {
+    enabled: true,
+    startTime: '10:00',
+    endTime: '15:00',
+    breaks: [],
+  },
+}
+
+export const DEFAULT_SLOT_INTERVAL = 30 // minutes
+
+/** Convert "HH:mm" to minutes from midnight */
+export function timeToMinutes(timeStr: string): number {
+  const [h, m] = (timeStr || '00:00').split(':').map(Number)
+  return (h || 0) * 60 + (m || 0)
+}
+
+/** Convert minutes from midnight to "HH:mm" */
+export function minutesToTime(mins: number): string {
+  const h = Math.floor(mins / 60)
+  const m = mins % 60
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
 }
 
 export function formatSlotLabel(time: string, locale: string): string {
-  const [h, m] = time.split(':').map(Number)
+  const [h, m] = (time || '00:00').split(':').map(Number)
   const d = new Date()
-  d.setHours(h, m, 0, 0)
+  d.setHours(h || 0, m || 0, 0, 0)
   return new Intl.DateTimeFormat(locale === 'ar' ? 'ar-EG' : 'en-US', {
     hour: 'numeric',
     minute: '2-digit',

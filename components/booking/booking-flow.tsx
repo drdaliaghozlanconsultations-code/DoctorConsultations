@@ -327,6 +327,7 @@ export function BookingFlow({
           <StepSchedule
             locale={locale}
             dict={dict}
+            durationMinutes={selectedConsultation?.durationMinutes || 30}
             selectedDate={selectedDate}
             selectedTime={selectedTime}
             onSelectSlot={handleSelectSlot}
