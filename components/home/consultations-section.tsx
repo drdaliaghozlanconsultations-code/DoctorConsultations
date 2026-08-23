@@ -20,7 +20,7 @@ export async function ConsultationsSection({
     const col = await getConsultationsCollection()
     const docs = await col
       .find({ isActive: true })
-      .sort({ sortOrder: 1, createdAt: -1 })
+      .sort({ sortOrder: 1, createdAt: 1 })
       .toArray()
 
     if (docs && docs.length > 0) {
@@ -29,6 +29,7 @@ export async function ConsultationsSection({
         name: d.title,
         description: d.description,
         durationMinutes: d.durationMinutes,
+        isMostBooked: d.isMostBooked,
         price: d.priceEGP,
         priceEGP: d.priceEGP,
         priceUSD: d.priceUSD,
@@ -39,7 +40,8 @@ export async function ConsultationsSection({
     list = consultationTypes
   }
 
-  // Find the highest priced consultation for the "Most Wanted" badge
+  // Check if any consultation is explicitly marked as "Most Booked"
+  const hasExplicitMostBooked = list.some((c) => c.isMostBooked)
   const highestPrice = Math.max(
     ...list.map((c) => c.priceEGP ?? c.price ?? 0),
     0,
@@ -65,7 +67,9 @@ export async function ConsultationsSection({
         >
           {list.map((c, i) => {
             const priceVal = c.priceEGP ?? c.price ?? 0
-            const isMostWanted = priceVal === highestPrice && highestPrice > 0
+            const isMostWanted = hasExplicitMostBooked
+              ? Boolean(c.isMostBooked)
+              : priceVal === highestPrice && highestPrice > 0
 
             return (
               <Reveal key={c.id} delay={i * 90}>

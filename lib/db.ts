@@ -23,9 +23,11 @@ export interface ConsultationDoc {
   title: LocalizedText
   description: LocalizedText
   durationMinutes: number
+  breakAfterMinutes?: number
   priceEGP: number
   priceUSD: number
   isActive: boolean
+  isMostBooked?: boolean
   sortOrder?: number
   createdAt: Date
   updatedAt: Date

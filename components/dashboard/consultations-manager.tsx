@@ -7,12 +7,15 @@ import {
   Trash2,
   Stethoscope,
   Clock,
+  Coffee,
   DollarSign,
   CheckCircle2,
   XCircle,
   AlertCircle,
   Sparkles,
   ShieldAlert,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react'
 import type { ConsultationItem, UserRole } from '@/lib/db'
 
@@ -34,11 +37,36 @@ export function ConsultationsManager({ initialItems, userRole }: ConsultationsMa
   const [descEn, setDescEn] = useState('')
   const [descAr, setDescAr] = useState('')
   const [duration, setDuration] = useState('30')
+  const [breakAfter, setBreakAfter] = useState('0')
   const [priceEGP, setPriceEGP] = useState('1500')
   const [priceUSD, setPriceUSD] = useState('60')
   const [isActive, setIsActive] = useState(true)
+  const [isMostBooked, setIsMostBooked] = useState(false)
 
   const isAdmin = userRole === 'admin'
+
+  const handleMove = async (index: number, direction: 'up' | 'down') => {
+    if (!isAdmin) return
+    const targetIndex = direction === 'up' ? index - 1 : index + 1
+    if (targetIndex < 0 || targetIndex >= items.length) return
+
+    const newItems = [...items]
+    const [moved] = newItems.splice(index, 1)
+    newItems.splice(targetIndex, 0, moved)
+
+    setItems(newItems)
+
+    try {
+      const orderedIds = newItems.map((it) => it._id)
+      await fetch('/api/dashboard/consultations', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderedIds }),
+      })
+    } catch (err) {
+      console.error('Failed to persist reordering:', err)
+    }
+  }
 
   const openCreateModal = () => {
     setEditingItem(null)
@@ -47,9 +75,11 @@ export function ConsultationsManager({ initialItems, userRole }: ConsultationsMa
     setDescEn('')
     setDescAr('')
     setDuration('30')
+    setBreakAfter('0')
     setPriceEGP('1500')
     setPriceUSD('60')
     setIsActive(true)
+    setIsMostBooked(false)
     setError(null)
     setIsModalOpen(true)
   }
@@ -61,9 +91,11 @@ export function ConsultationsManager({ initialItems, userRole }: ConsultationsMa
     setDescEn(item.description?.en || '')
     setDescAr(item.description?.ar || '')
     setDuration(String(item.durationMinutes || 30))
+    setBreakAfter(String(item.breakAfterMinutes || 0))
     setPriceEGP(String(item.priceEGP || 0))
     setPriceUSD(String(item.priceUSD || 0))
     setIsActive(item.isActive !== false)
+    setIsMostBooked(Boolean(item.isMostBooked))
     setError(null)
     setIsModalOpen(true)
   }
@@ -79,9 +111,11 @@ export function ConsultationsManager({ initialItems, userRole }: ConsultationsMa
         title: { en: titleEn, ar: titleAr },
         description: { en: descEn, ar: descAr },
         durationMinutes: Number(duration),
+        breakAfterMinutes: Number(breakAfter) || 0,
         priceEGP: Number(priceEGP),
         priceUSD: Number(priceUSD),
         isActive,
+        isMostBooked: Boolean(isMostBooked),
       }
 
       if (editingItem) {
@@ -99,18 +133,19 @@ export function ConsultationsManager({ initialItems, userRole }: ConsultationsMa
         }
 
         setItems((prev) =>
-          prev.map((item) =>
-            item._id === editingItem._id
-              ? { ...item, ...payload, updatedAt: new Date() }
-              : item,
-          ),
+          prev.map((item) => {
+            if (item._id === editingItem._id) {
+              return { ...item, ...payload, updatedAt: new Date() }
+            }
+            return isMostBooked ? { ...item, isMostBooked: false } : item
+          }),
         )
       } else {
         // Create
         const res = await fetch('/api/dashboard/consultations', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
+          body: JSON.stringify({ ...payload, sortOrder: items.length + 1 }),
         })
         const data = await res.json()
         if (!res.ok || !data.success) {
@@ -119,7 +154,10 @@ export function ConsultationsManager({ initialItems, userRole }: ConsultationsMa
           return
         }
 
-        setItems((prev) => [data.data, ...prev])
+        setItems((prev) => {
+          const mapped = isMostBooked ? prev.map((it) => ({ ...it, isMostBooked: false })) : prev
+          return [...mapped, data.data]
+        })
       }
 
       setIsModalOpen(false)
@@ -181,7 +219,7 @@ export function ConsultationsManager({ initialItems, userRole }: ConsultationsMa
 
       {/* Consultations Grid / List */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {items.map((item) => (
+        {items.map((item, index) => (
           <div
             key={item._id}
             className={`rounded-[2.5rem] border bg-card p-6 shadow-xs flex flex-col justify-between transition-all hover:shadow-md ${
@@ -194,6 +232,12 @@ export function ConsultationsManager({ initialItems, userRole }: ConsultationsMa
                   <Stethoscope className="size-5" />
                 </div>
                 <div className="flex items-center gap-2">
+                  {item.isMostBooked && (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
+                      <Sparkles className="size-3 fill-current" />
+                      Most Booked
+                    </span>
+                  )}
                   {item.isActive ? (
                     <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
                       <CheckCircle2 className="size-3" />
@@ -216,9 +260,17 @@ export function ConsultationsManager({ initialItems, userRole }: ConsultationsMa
                 <p className="text-sm font-semibold text-primary font-serif dir-rtl text-right mt-0.5">
                   {item.title?.ar || ''}
                 </p>
-                <div className="mt-2 inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
-                  <Clock className="size-3" />
-                  <span>{item.durationMinutes} Minutes</span>
+                <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                  <div className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
+                    <Clock className="size-3" />
+                    <span>{item.durationMinutes} Minutes</span>
+                  </div>
+                  {Boolean(item.breakAfterMinutes && item.breakAfterMinutes > 0) && (
+                    <div className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-full">
+                      <Coffee className="size-3" />
+                      <span>{item.breakAfterMinutes} Mins Break</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -253,27 +305,53 @@ export function ConsultationsManager({ initialItems, userRole }: ConsultationsMa
                 </div>
               </div>
 
-              {isAdmin && (
-                <div className="flex items-center justify-end gap-2 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => openEditModal(item)}
-                    className="p-2 rounded-xl border border-border text-foreground hover:bg-muted transition-colors text-xs font-semibold inline-flex items-center gap-1"
-                  >
-                    <Edit2 className="size-3.5" />
-                    <span>Edit</span>
-                  </button>
+              {isAdmin ? (
+                <div className="flex items-center justify-between gap-2 pt-2">
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      title="Move Earlier"
+                      disabled={index === 0}
+                      onClick={() => handleMove(index, 'up')}
+                      className="p-2 rounded-xl border border-border text-foreground hover:bg-muted transition-colors text-xs font-semibold disabled:opacity-30 disabled:pointer-events-none"
+                    >
+                      <ChevronLeft className="size-3.5" />
+                    </button>
+                    <span className="text-[11px] font-bold text-muted-foreground px-1">
+                      #{index + 1}
+                    </span>
+                    <button
+                      type="button"
+                      title="Move Later"
+                      disabled={index === items.length - 1}
+                      onClick={() => handleMove(index, 'down')}
+                      className="p-2 rounded-xl border border-border text-foreground hover:bg-muted transition-colors text-xs font-semibold disabled:opacity-30 disabled:pointer-events-none"
+                    >
+                      <ChevronRight className="size-3.5" />
+                    </button>
+                  </div>
 
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(item._id)}
-                    className="p-2 rounded-xl border border-destructive/20 text-destructive hover:bg-destructive/10 transition-colors text-xs font-semibold inline-flex items-center gap-1"
-                  >
-                    <Trash2 className="size-3.5" />
-                    <span>Delete</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => openEditModal(item)}
+                      className="p-2 rounded-xl border border-border text-foreground hover:bg-muted transition-colors text-xs font-semibold inline-flex items-center gap-1"
+                    >
+                      <Edit2 className="size-3.5" />
+                      <span>Edit</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(item._id)}
+                      className="p-2 rounded-xl border border-destructive/20 text-destructive hover:bg-destructive/10 transition-colors text-xs font-semibold inline-flex items-center gap-1"
+                    >
+                      <Trash2 className="size-3.5" />
+                      <span>Delete</span>
+                    </button>
+                  </div>
                 </div>
-              )}
+              ) : null}
             </div>
           </div>
         ))}
@@ -365,8 +443,8 @@ export function ConsultationsManager({ initialItems, userRole }: ConsultationsMa
                 </div>
               </div>
 
-              {/* Duration & Pricing */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* Duration, Break & Pricing */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
                     Duration (Mins) *
@@ -378,6 +456,21 @@ export function ConsultationsManager({ initialItems, userRole }: ConsultationsMa
                     step={5}
                     value={duration}
                     onChange={(e) => setDuration(e.target.value)}
+                    className="w-full rounded-2xl border border-border bg-background p-3 text-sm focus:border-primary focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                    Break After (Mins)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={5}
+                    value={breakAfter}
+                    onChange={(e) => setBreakAfter(e.target.value)}
+                    placeholder="0"
                     className="w-full rounded-2xl border border-border bg-background p-3 text-sm focus:border-primary focus:outline-none"
                   />
                 </div>
@@ -413,18 +506,39 @@ export function ConsultationsManager({ initialItems, userRole }: ConsultationsMa
                 </div>
               </div>
 
-              {/* Active Toggle */}
-              <div className="pt-2 flex items-center gap-3">
-                <input
-                  id="isActiveToggle"
-                  type="checkbox"
-                  checked={isActive}
-                  onChange={(e) => setIsActive(e.target.checked)}
-                  className="size-4 rounded accent-primary text-primary"
-                />
-                <label htmlFor="isActiveToggle" className="text-sm font-medium text-foreground cursor-pointer">
-                  Active (Visible on public booking page)
-                </label>
+              {/* Toggles */}
+              <div className="pt-2 space-y-3">
+                <div className="flex items-center gap-3">
+                  <input
+                    id="isActiveToggle"
+                    type="checkbox"
+                    checked={isActive}
+                    onChange={(e) => setIsActive(e.target.checked)}
+                    className="size-4 rounded accent-primary text-primary"
+                  />
+                  <label htmlFor="isActiveToggle" className="text-sm font-medium text-foreground cursor-pointer">
+                    Active (Visible on public booking page)
+                  </label>
+                </div>
+
+                <div className="flex items-start gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-3.5">
+                  <input
+                    id="isMostBookedToggle"
+                    type="checkbox"
+                    checked={isMostBooked}
+                    onChange={(e) => setIsMostBooked(e.target.checked)}
+                    className="mt-0.5 size-4 rounded accent-primary text-primary"
+                  />
+                  <div>
+                    <label htmlFor="isMostBookedToggle" className="text-sm font-semibold text-foreground cursor-pointer flex items-center gap-1.5">
+                      <Sparkles className="size-3.5 text-primary fill-current" />
+                      Mark as "Most Booked" (الأكثر حجزاً)
+                    </label>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Displays the "Most Booked" badge on this consultation across the website and booking flow. Setting this automatically unsets it from any other consultation.
+                    </p>
+                  </div>
+                </div>
               </div>
 
               {/* Actions */}

@@ -11,7 +11,7 @@ export default async function ConsultationsDashboardPage() {
   const consultationsCollection = await getConsultationsCollection()
   const items = await consultationsCollection
     .find({})
-    .sort({ sortOrder: 1, createdAt: -1 })
+    .sort({ sortOrder: 1, createdAt: 1 })
     .toArray()
 
   const formatted: ConsultationItem[] = items.map((item) => ({

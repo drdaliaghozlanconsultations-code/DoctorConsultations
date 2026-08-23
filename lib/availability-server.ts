@@ -167,28 +167,47 @@ export async function getSlotsForDate(
       })
       .toArray()
 
-    // Pre-fetch consultation durations cache
-    const consultDurations: Record<string, number> = {}
+    // Pre-fetch consultation info (duration + breakAfter) cache
+    interface ConsultCacheInfo {
+      duration: number
+      breakAfter: number
+    }
+    const consultCache: Record<string, ConsultCacheInfo> = {}
+
     for (const b of activeBookings) {
       let bDuration = 30 // default
+      let bBreakAfter = 0 // default
+
       if (b.consultationId) {
-        if (consultDurations[b.consultationId] !== undefined) {
-          bDuration = consultDurations[b.consultationId]
+        if (consultCache[b.consultationId] !== undefined) {
+          bDuration = consultCache[b.consultationId].duration
+          bBreakAfter = consultCache[b.consultationId].breakAfter
         } else {
           try {
             const cDoc = await consultCol.findOne({ _id: new ObjectId(b.consultationId) })
-            if (cDoc?.durationMinutes) {
-              bDuration = cDoc.durationMinutes
+            if (cDoc) {
+              bDuration = cDoc.durationMinutes || 30
+              bBreakAfter = cDoc.breakAfterMinutes || 0
             }
-            consultDurations[b.consultationId] = bDuration
           } catch {
-            consultDurations[b.consultationId] = 30
+            // If not a valid ObjectId, fallback to static consultationTypes if matching
+            if (b.consultationId === 'consult-60') {
+              bDuration = 60
+              bBreakAfter = 30
+            } else if (b.consultationId === 'consult-30') {
+              bDuration = 30
+              bBreakAfter = 0
+            } else {
+              bDuration = 30
+              bBreakAfter = 0
+            }
           }
+          consultCache[b.consultationId] = { duration: bDuration, breakAfter: bBreakAfter }
         }
       }
 
       const bStart = timeToMinutes(b.time)
-      const bEnd = bStart + bDuration
+      const bEnd = bStart + bDuration + bBreakAfter
       busyIntervals.push({ start: bStart, end: bEnd })
     }
   } catch (err) {

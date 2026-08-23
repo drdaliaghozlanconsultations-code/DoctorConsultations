@@ -27,7 +27,8 @@ export function StepConsultation({
 }: StepConsultationProps) {
   const d = dict.booking.consultation
 
-  // Find the highest priced consultation to badge as "Most Wanted"
+  // Check if any consultation is explicitly marked as "Most Booked"
+  const hasExplicitMostBooked = consultationsList.some((item) => item.isMostBooked)
   const highestPrice = Math.max(
     ...consultationsList.map((item) => {
       if (currency === 'USD' && item.priceUSD !== undefined) return item.priceUSD
@@ -58,7 +59,9 @@ export function StepConsultation({
                 ? item.priceEGP
                 : item.price || 0
 
-          const isMostWanted = priceValue === highestPrice && highestPrice > 0
+          const isMostWanted = hasExplicitMostBooked
+            ? Boolean(item.isMostBooked)
+            : priceValue === highestPrice && highestPrice > 0
 
           return (
             <div

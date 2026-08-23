@@ -21,7 +21,7 @@ export async function ServicesSection({
     const col = await getConsultationsCollection()
     const docs = await col
       .find({ isActive: true })
-      .sort({ sortOrder: 1, createdAt: -1 })
+      .sort({ sortOrder: 1, createdAt: 1 })
       .toArray()
 
     if (docs && docs.length > 0) {
@@ -31,6 +31,7 @@ export async function ServicesSection({
         name: d.title,
         description: d.description,
         durationMinutes: d.durationMinutes,
+        isMostBooked: d.isMostBooked,
         startingPrice: d.priceEGP,
       }))
     }
@@ -41,7 +42,8 @@ export async function ServicesSection({
 
   const displayedList = showAll ? list : list.slice(0, 3)
 
-  // Find the highest priced session for the "Most Wanted" badge
+  // Check if any service is explicitly marked as "Most Booked"
+  const hasExplicitMostBooked = displayedList.some((s) => s.isMostBooked)
   const highestPrice = Math.max(
     ...displayedList.map((s) => s.startingPrice || 0),
     0,
@@ -68,7 +70,11 @@ export async function ServicesSection({
               service={service}
               locale={locale}
               dict={dict}
-              isMostWanted={service.startingPrice === highestPrice && highestPrice > 0}
+              isMostWanted={
+                hasExplicitMostBooked
+                  ? Boolean(service.isMostBooked)
+                  : service.startingPrice === highestPrice && highestPrice > 0
+              }
             />
           </Reveal>
         ))}

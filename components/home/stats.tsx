@@ -2,13 +2,14 @@ import type { Locale } from '@/lib/i18n/config'
 import type { Dictionary } from '@/lib/i18n'
 import { stats, localizedField } from '@/lib/data/site'
 import { Reveal } from '@/components/reveal'
+import { CountUp } from '@/components/count-up'
 
 export function Stats({ locale, dict }: { locale: Locale; dict: Dictionary }) {
   return (
     <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
       <Reveal className="rounded-[2.5rem] border border-border bg-card p-8 shadow-sm sm:p-12">
         <div className="mx-auto mb-10 max-w-2xl text-center">
-          <h2 className="text-balance font-serif text-2xl font-semibold text-foreground sm:text-3xl">
+          <h2 className="text-balance font-serif text-2xl font-semibold text-foreground sm:text-4xl">
             {dict.stats.title}
           </h2>
           <p className="mt-3 text-muted-foreground">{dict.stats.subtitle}</p>
@@ -22,7 +23,7 @@ export function Stats({ locale, dict }: { locale: Locale; dict: Dictionary }) {
             >
               <dt className="sr-only">{localizedField(stat.label, locale)}</dt>
               <dd className="font-serif text-4xl font-semibold text-primary sm:text-5xl">
-                {stat.value}
+                <CountUp value={stat.value} duration={3000 + i * 1200} />
               </dd>
               <p className="mt-2 text-sm font-medium text-muted-foreground">
                 {localizedField(stat.label, locale)}

@@ -150,8 +150,8 @@ export function StepPayment({
               <div
                 onClick={() => setPaymentMethod('instapay')}
                 className={`flex items-center gap-3 p-4 rounded-2xl border cursor-pointer transition-all ${paymentMethod === 'instapay'
-                    ? 'border-primary bg-primary/10 ring-2 ring-primary/20 shadow-xs'
-                    : 'border-border bg-card'
+                  ? 'border-primary bg-primary/10 ring-2 ring-primary/20 shadow-xs'
+                  : 'border-border bg-card'
                   }`}
               >
                 <div className="size-9 rounded-xl bg-primary/20 text-primary flex items-center justify-center font-bold text-xs">
@@ -200,12 +200,12 @@ export function StepPayment({
             <div className="space-y-2.5 text-xs text-foreground">
               <div className="flex items-center justify-between bg-card p-3 rounded-2xl border border-border">
                 <span className="text-muted-foreground">{isArabic ? 'عنوان إنستاباي (IPA):' : 'InstaPay Username:'}</span>
-                <span className="font-mono font-bold text-primary text-sm">dalia.ghozlan@instapay</span>
+                <span className="font-mono font-bold text-primary text-sm">drdaliaghozlan@instapay</span>
               </div>
 
               <div className="flex items-center justify-between bg-card p-3 rounded-2xl border border-border">
                 <span className="text-muted-foreground">{isArabic ? 'رقم الهاتف المعتمد:' : 'Phone Number:'}</span>
-                <span className="font-mono font-semibold text-foreground">+20 100 000 0000</span>
+                <span className="font-mono font-semibold text-foreground">+20 12 88000739</span>
               </div>
 
               <p className="text-[11px] text-muted-foreground leading-relaxed pt-1">

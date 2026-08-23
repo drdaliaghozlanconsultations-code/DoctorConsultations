@@ -36,12 +36,14 @@ export function BookingFlow({
     (ConsultationType & { priceEGP?: number; priceUSD?: number })[]
   >(fallbackConsultations)
 
-  // Helper to find highest priced consultation
+  // Helper to find most booked consultation (by isMostBooked flag or fallback highest price)
   const getMostWanted = (
-    list: (ConsultationType & { priceEGP?: number; priceUSD?: number })[],
+    list: (ConsultationType & { priceEGP?: number; priceUSD?: number; isMostBooked?: boolean })[],
     curr: 'EGP' | 'USD',
   ) => {
     if (!list || list.length === 0) return null
+    const marked = list.find((c) => c.isMostBooked)
+    if (marked) return marked
     return list.reduce((prev, current) => {
       const prevPrice = curr === 'USD' ? (prev.priceUSD ?? prev.price) : (prev.priceEGP ?? prev.price)
       const currPrice = curr === 'USD' ? (current.priceUSD ?? current.price) : (current.priceEGP ?? current.price)
@@ -51,7 +53,7 @@ export function BookingFlow({
 
   // Booking data state
   const [selectedConsultation, setSelectedConsultation] =
-    React.useState<(ConsultationType & { priceEGP?: number; priceUSD?: number }) | null>(
+    React.useState<(ConsultationType & { priceEGP?: number; priceUSD?: number; isMostBooked?: boolean }) | null>(
       () => {
         if (initialConsultationParam) {
           const found = fallbackConsultations.find((c) => c.id === initialConsultationParam)
@@ -106,6 +108,8 @@ export function BookingFlow({
             name: c.title,
             description: c.description,
             durationMinutes: c.durationMinutes,
+            breakAfterMinutes: c.breakAfterMinutes,
+            isMostBooked: c.isMostBooked,
             price: currency === 'USD' ? c.priceUSD : c.priceEGP,
             priceEGP: c.priceEGP,
             priceUSD: c.priceUSD,

@@ -9,7 +9,7 @@ export function ServiceCard({
   service,
   locale,
   dict,
-  isMostWanted = false,
+  isMostWanted,
 }: {
   service: ServiceItem
   locale: Locale
@@ -17,17 +17,18 @@ export function ServiceCard({
   isMostWanted?: boolean
 }) {
   const isArabic = locale === 'ar'
+  const showBadge = isMostWanted !== undefined ? isMostWanted : Boolean(service.isMostBooked)
 
   return (
     <article
       className={`group relative flex h-full flex-col justify-between rounded-3xl border p-7 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg ${
-        isMostWanted
+        showBadge
           ? 'border-primary/50 bg-card hover:border-primary'
           : 'border-border bg-card hover:border-primary/40'
       }`}
     >
       {/* "Most Booked" Badge on Top Right */}
-      {isMostWanted && (
+      {showBadge && (
         <div className="absolute -top-3.5 end-6 inline-flex items-center gap-1.5 rounded-full bg-primary text-primary-foreground px-3.5 py-1 text-xs font-bold shadow-md ring-2 ring-background">
           <Sparkles className="size-3.5 fill-current" />
           <span>

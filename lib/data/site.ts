@@ -15,6 +15,8 @@ export interface ServiceItem {
   name: Localized
   description: Localized
   durationMinutes: number
+  breakAfterMinutes?: number
+  isMostBooked?: boolean
   startingPrice: number // in the display currency below
 }
 
@@ -39,6 +41,8 @@ export interface ConsultationType {
   name: Localized
   description: Localized
   durationMinutes: number
+  breakAfterMinutes?: number
+  isMostBooked?: boolean
   price: number
 }
 
@@ -50,7 +54,7 @@ export const currency = {
 export const stats: StatItem[] = [
   {
     id: 'experience',
-    value: '10+',
+    value: '5+',
     label: { en: 'Years of Experience', ar: 'سنوات من الخبرة' },
   },
   {
@@ -65,7 +69,7 @@ export const stats: StatItem[] = [
   },
   {
     id: 'stories',
-    value: '98%',
+    value: '100%',
     label: { en: 'Satisfaction', ar: 'نسبة الرضا' },
   },
 ]
@@ -148,6 +152,8 @@ export const consultationTypes: ConsultationType[] = [
       ar: 'جلسة استشارية متكاملة لمناقشة مخاوفك الصحية، مراجعة تاريخك الطبي، والحصول على التوجيه اللازم.',
     },
     durationMinutes: 30,
+    breakAfterMinutes: 0,
+    isMostBooked: false,
     price: 60,
   },
   {
@@ -158,6 +164,8 @@ export const consultationTypes: ConsultationType[] = [
       ar: 'جلسة موسّعة ومُفصّلة توفّر وقتاً كافياً لبحث واستكشاف مختلف المخاوف والاستفسارات الصحية بشكل شامل.',
     },
     durationMinutes: 60,
+    breakAfterMinutes: 30,
+    isMostBooked: true,
     price: 110,
   },
 ]
