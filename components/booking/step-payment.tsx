@@ -3,14 +3,13 @@
 import * as React from 'react'
 import {
   Lock,
-  Info,
   CreditCard,
   UploadCloud,
   CheckCircle2,
-  Image as ImageIcon,
   AlertCircle,
-  QrCode,
   ShieldCheck,
+  Smartphone,
+  Loader2,
 } from 'lucide-react'
 import type { Locale } from '@/lib/i18n/config'
 import type { Dictionary } from '@/lib/i18n'
@@ -48,7 +47,17 @@ export function StepPayment({
   const d = dict.booking.payment
   const isArabic = locale === 'ar'
 
-  const [paymentMethod, setPaymentMethod] = React.useState<'instapay' | 'card'>('instapay')
+  // Payment method state (default based on currency, but allows switching)
+  const [paymentMethod, setPaymentMethod] = React.useState<'instapay' | 'card'>(
+    currency === 'USD' ? 'card' : 'instapay',
+  )
+
+  React.useEffect(() => {
+    if (currency === 'USD') {
+      setPaymentMethod('card')
+    }
+  }, [currency])
+
   const [receiptFile, setReceiptFile] = React.useState<File | null>(null)
   const [receiptPreview, setReceiptPreview] = React.useState<string | null>(null)
   const [uploading, setUploading] = React.useState(false)
@@ -57,6 +66,7 @@ export function StepPayment({
     publicId: string
   } | null>(null)
   const [uploadError, setUploadError] = React.useState<string | null>(null)
+  const [cardError, setCardError] = React.useState<string | null>(null)
 
   // Determine display price
   const displayPrice = React.useMemo(() => {
@@ -109,12 +119,20 @@ export function StepPayment({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+
     if (paymentMethod === 'instapay' && !uploadedData?.url) {
       setUploadError(
         isArabic
           ? 'يرجى رفع إيصال تحويل إنستاباي لتأكيد الحجز'
           : 'Please upload your InstaPay transfer receipt before confirming.',
       )
+      return
+    }
+
+    if (paymentMethod === 'card') {
+      // Card payment is handled via redirect, so call onSubmitPayment
+      // which will trigger the PayTabs flow in booking-flow.tsx
+      onSubmitPayment({ paymentMethod: 'card' })
       return
     }
 
@@ -132,172 +150,262 @@ export function StepPayment({
           {d.title}
         </h2>
         <p className="mt-2 text-sm text-muted-foreground sm:text-base">
-          {isArabic
-            ? 'يرجى إتمام التحويل عبر إنستاباي ورفع صورة الإيصال ليقوم فريق العمل بمراجعة موعدك وتأكيده عبر البريد الإلكتروني.'
-            : 'Please complete the transfer via InstaPay and upload the receipt. Our staff will review it and send a confirmation email.'}
+          {paymentMethod === 'instapay'
+            ? (isArabic
+                ? 'يرجى إتمام التحويل عبر إنستاباي ورفع صورة الإيصال ليقوم فريق العمل بمراجعة موعدك وتأكيده عبر البريد الإلكتروني.'
+                : 'Please complete the transfer via InstaPay and upload the receipt. Our staff will review it and send a confirmation email.')
+            : (isArabic
+                ? 'سيتم تحويلك إلى صفحة الدفع الآمنة لإتمام العملية ببطاقتك البنكية.'
+                : 'You will be redirected to a secure payment page to complete the transaction with your card.')}
         </p>
       </div>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-12">
         {/* Payment Form */}
         <form onSubmit={handleSubmit} className="space-y-6 lg:col-span-7">
-          {/* Payment Method Selector (InstaPay active) */}
+          {/* Payment Method Selector */}
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-              {isArabic ? 'طريقة الدفع المتاحة' : 'Available Payment Method'}
+              {isArabic ? 'طريقة الدفع' : 'Payment Method'}
             </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div
-                onClick={() => setPaymentMethod('instapay')}
-                className={`flex items-center gap-3 p-4 rounded-2xl border cursor-pointer transition-all ${paymentMethod === 'instapay'
-                  ? 'border-primary bg-primary/10 ring-2 ring-primary/20 shadow-xs'
-                  : 'border-border bg-card'
+            <div className={`grid gap-3 ${currency === 'EGP' ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
+              {/* InstaPay (only available for EGP) */}
+              {currency === 'EGP' && (
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setPaymentMethod('instapay')}
+                  onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setPaymentMethod('instapay')}
+                  className={`flex items-center gap-3 p-4 rounded-2xl border cursor-pointer transition-all ${
+                    paymentMethod === 'instapay'
+                      ? 'border-primary bg-primary/10 ring-2 ring-primary/20 shadow-xs'
+                      : 'border-border bg-card hover:border-primary/40'
                   }`}
-              >
-                <div className="size-9 rounded-xl bg-primary/20 text-primary flex items-center justify-center font-bold text-xs">
-                  IP
+                >
+                  <div className={`size-9 rounded-xl flex items-center justify-center font-bold text-xs ${
+                    paymentMethod === 'instapay' ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'
+                  }`}>
+                    IP
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-foreground">
+                      {isArabic ? 'إنستاباي (InstaPay)' : 'InstaPay Transfer'}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {isArabic ? 'التحويل المباشر في مصر' : 'Direct Instant Transfer'}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-bold text-foreground">
-                    {isArabic ? 'إنستاباي (InstaPay)' : 'InstaPay Transfer'}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground">
-                    {isArabic ? 'التحويل المباشر في مصر' : 'Direct Instant Transfer'}
-                  </p>
-                </div>
-              </div>
+              )}
 
-              <div className="flex items-center gap-3 p-4 rounded-2xl border border-border/50 bg-muted/30 opacity-60 cursor-not-allowed">
-                <div className="size-9 rounded-xl bg-muted text-muted-foreground flex items-center justify-center">
+              {/* Card / Apple Pay (Available for both EGP & USD via PayTabs) */}
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => setPaymentMethod('card')}
+                onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setPaymentMethod('card')}
+                className={`flex items-center gap-3 p-4 rounded-2xl border cursor-pointer transition-all ${
+                  paymentMethod === 'card'
+                    ? 'border-primary bg-primary/10 ring-2 ring-primary/20 shadow-xs'
+                    : 'border-border bg-card hover:border-primary/40'
+                }`}
+              >
+                <div className={`size-9 rounded-xl flex items-center justify-center ${
+                  paymentMethod === 'card' ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'
+                }`}>
                   <CreditCard className="size-5" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-foreground">
-                    {isArabic ? 'بطاقة بنكية' : 'Credit / Debit Card'}
+                  <p className="text-sm font-bold text-foreground">
+                    {isArabic ? 'بطاقة بنكية / Apple Pay' : 'Credit / Debit Card / Apple Pay'}
                   </p>
-                  <p className="text-[10px] text-muted-foreground">
-                    {isArabic ? 'قريباً' : 'Coming Soon'}
+                  <p className="text-[11px] text-muted-foreground">
+                    {isArabic ? 'Visa, Mastercard, Apple Pay عبر PayTabs' : 'Visa, Mastercard, Apple Pay via PayTabs'}
                   </p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* InstaPay Transfer Instructions Box */}
-          <div className="rounded-3xl border border-primary/25 bg-secondary/30 p-5 space-y-4">
-            <div className="flex items-center justify-between border-b border-border/80 pb-3">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="size-5 text-primary" />
-                <span className="font-serif font-bold text-foreground text-sm">
-                  {isArabic ? 'بيانات التحويل عبر إنستاباي' : 'InstaPay Transfer Details'}
-                </span>
-              </div>
-              <span className="text-xs font-mono font-bold text-primary bg-primary/10 px-2.5 py-0.5 rounded-full">
-                {displayPrice}
-              </span>
-            </div>
-
-            <div className="space-y-2.5 text-xs text-foreground">
-              <div className="flex items-center justify-between bg-card p-3 rounded-2xl border border-border">
-                <span className="text-muted-foreground">{isArabic ? 'عنوان إنستاباي (IPA):' : 'InstaPay Username:'}</span>
-                <span className="font-mono font-bold text-primary text-sm">drdaliaghozlan@instapay</span>
-              </div>
-
-              <div className="flex items-center justify-between bg-card p-3 rounded-2xl border border-border">
-                <span className="text-muted-foreground">{isArabic ? 'رقم الهاتف المعتمد:' : 'Phone Number:'}</span>
-                <span className="font-mono font-semibold text-foreground">+20 12 88000739</span>
-              </div>
-
-              <p className="text-[11px] text-muted-foreground leading-relaxed pt-1">
-                {isArabic
-                  ? 'يرجى تحويل المبلغ المطلوب ثم التقاط صورة/لقطة شاشة لإيصال التحويل ورفعها في المربع أدناه.'
-                  : 'Please transfer the exact amount and upload a screenshot or photo of the confirmation receipt below.'}
-              </p>
-            </div>
-          </div>
-
-          {/* Receipt Upload Section */}
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-              {isArabic ? 'رفع إيصال التحويل (صورة الإيصال) *' : 'Upload Payment Receipt Screenshot *'}
-            </label>
-
-            {uploadError && (
-              <div className="mb-3 rounded-2xl border border-destructive/30 bg-destructive/10 p-3 text-xs font-medium text-destructive">
-                {uploadError}
-              </div>
-            )}
-
-            <div className="relative rounded-3xl border-2 border-dashed border-border hover:border-primary/50 bg-card p-6 text-center transition-all">
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                disabled={uploading || isSubmitting}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
-              />
-
-              {receiptPreview ? (
-                <div className="space-y-3">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={receiptPreview}
-                    alt="Receipt Preview"
-                    className="mx-auto max-h-40 rounded-xl object-contain border border-border shadow-xs"
-                  />
-                  <div className="flex items-center justify-center gap-2 text-xs">
-                    {uploading ? (
-                      <span className="text-primary font-semibold flex items-center gap-1.5">
-                        <span className="size-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                        {isArabic ? 'جارٍ رفع الإيصال إلى السحابة...' : 'Uploading receipt to Cloudinary...'}
-                      </span>
-                    ) : uploadedData ? (
-                      <span className="text-emerald-600 font-semibold flex items-center gap-1">
-                        <CheckCircle2 className="size-4" />
-                        {isArabic ? 'تم رفع الإيصال بنجاح' : 'Receipt uploaded successfully'}
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground">{receiptFile?.name}</span>
-                    )}
+          {/* ─── InstaPay Section (EGP only) ─── */}
+          {paymentMethod === 'instapay' && (
+            <>
+              {/* InstaPay Transfer Instructions Box */}
+              <div className="rounded-3xl border border-primary/25 bg-secondary/30 p-5 space-y-4">
+                <div className="flex items-center justify-between border-b border-border/80 pb-3">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="size-5 text-primary" />
+                    <span className="font-serif font-bold text-foreground text-sm">
+                      {isArabic ? 'بيانات التحويل عبر إنستاباي' : 'InstaPay Transfer Details'}
+                    </span>
                   </div>
-                  <span className="text-[11px] text-muted-foreground block">
-                    {isArabic ? 'انقر لاختيار صورة أخرى' : 'Click to change image'}
+                  <span className="text-xs font-mono font-bold text-primary bg-primary/10 px-2.5 py-0.5 rounded-full">
+                    {displayPrice}
                   </span>
                 </div>
-              ) : (
-                <div className="space-y-2 py-4">
-                  <div className="size-12 mx-auto rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
-                    <UploadCloud className="size-6" />
+
+                <div className="space-y-2.5 text-xs text-foreground">
+                  <div className="flex items-center justify-between bg-card p-3 rounded-2xl border border-border">
+                    <span className="text-muted-foreground">{isArabic ? 'عنوان إنستاباي (IPA):' : 'InstaPay Username:'}</span>
+                    <span className="font-mono font-bold text-primary text-sm">drdaliaghozlan@instapay</span>
                   </div>
-                  <p className="text-sm font-semibold text-foreground">
-                    {isArabic ? 'انقر أو اسحب صورة الإيصال هنا' : 'Click or drag receipt image here'}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    PNG, JPG, JPEG up to 5MB
+
+                  <div className="flex items-center justify-between bg-card p-3 rounded-2xl border border-border">
+                    <span className="text-muted-foreground">{isArabic ? 'رقم الهاتف المعتمد:' : 'Phone Number:'}</span>
+                    <span className="font-mono font-semibold text-foreground">+20 12 88000739</span>
+                  </div>
+
+                  <p className="text-[11px] text-muted-foreground leading-relaxed pt-1">
+                    {isArabic
+                      ? 'يرجى تحويل المبلغ المطلوب ثم التقاط صورة/لقطة شاشة لإيصال التحويل ورفعها في المربع أدناه.'
+                      : 'Please transfer the exact amount and upload a screenshot or photo of the confirmation receipt below.'}
                   </p>
                 </div>
-              )}
-            </div>
-          </div>
+              </div>
 
-          <div className="pt-2">
-            <Button
-              type="submit"
-              disabled={isSubmitting || uploading}
-              className="h-13 w-full rounded-full bg-primary text-base font-semibold text-primary-foreground shadow-md hover:bg-primary/90 disabled:opacity-50"
-            >
-              {isSubmitting ? (
-                <span className="flex items-center gap-2">
-                  <span className="size-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
-                  {isArabic ? 'جارٍ تسجيل الحجز...' : 'Confirming Booking...'}
-                </span>
-              ) : (
-                <span className="flex items-center gap-2">
-                  {isArabic ? 'تأكيد الحجز وتقديم الإيصال' : 'Confirm Booking & Submit Receipt'}
-                </span>
+              {/* Receipt Upload Section */}
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                  {isArabic ? 'رفع إيصال التحويل (صورة الإيصال) *' : 'Upload Payment Receipt Screenshot *'}
+                </label>
+
+                {uploadError && (
+                  <div className="mb-3 rounded-2xl border border-destructive/30 bg-destructive/10 p-3 text-xs font-medium text-destructive">
+                    {uploadError}
+                  </div>
+                )}
+
+                <div className="relative rounded-3xl border-2 border-dashed border-border hover:border-primary/50 bg-card p-6 text-center transition-all">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    disabled={uploading || isSubmitting}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                  />
+
+                  {receiptPreview ? (
+                    <div className="space-y-3">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={receiptPreview}
+                        alt="Receipt Preview"
+                        className="mx-auto max-h-40 rounded-xl object-contain border border-border shadow-xs"
+                      />
+                      <div className="flex items-center justify-center gap-2 text-xs">
+                        {uploading ? (
+                          <span className="text-primary font-semibold flex items-center gap-1.5">
+                            <span className="size-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                            {isArabic ? 'جارٍ رفع الإيصال إلى السحابة...' : 'Uploading receipt to Cloudinary...'}
+                          </span>
+                        ) : uploadedData ? (
+                          <span className="text-emerald-600 font-semibold flex items-center gap-1">
+                            <CheckCircle2 className="size-4" />
+                            {isArabic ? 'تم رفع الإيصال بنجاح' : 'Receipt uploaded successfully'}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">{receiptFile?.name}</span>
+                        )}
+                      </div>
+                      <span className="text-[11px] text-muted-foreground block">
+                        {isArabic ? 'انقر لاختيار صورة أخرى' : 'Click to change image'}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 py-4">
+                      <div className="size-12 mx-auto rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
+                        <UploadCloud className="size-6" />
+                      </div>
+                      <p className="text-sm font-semibold text-foreground">
+                        {isArabic ? 'انقر أو اسحب صورة الإيصال هنا' : 'Click or drag receipt image here'}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        PNG, JPG, JPEG up to 5MB
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <Button
+                  type="submit"
+                  disabled={isSubmitting || uploading}
+                  className="h-13 w-full rounded-full bg-primary text-base font-semibold text-primary-foreground shadow-md hover:bg-primary/90 disabled:opacity-50"
+                >
+                  {isSubmitting ? (
+                    <span className="flex items-center gap-2">
+                      <span className="size-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+                      {isArabic ? 'جارٍ تسجيل الحجز...' : 'Confirming Booking...'}
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-2">
+                      {isArabic ? 'تأكيد الحجز وتقديم الإيصال' : 'Confirm Booking & Submit Receipt'}
+                    </span>
+                  )}
+                </Button>
+              </div>
+            </>
+          )}
+
+          {/* ─── Card / Apple Pay Section (USD only) ─── */}
+          {paymentMethod === 'card' && (
+            <>
+              {/* Secure Payment Notice */}
+              <div className="rounded-3xl border border-primary/25 bg-secondary/30 p-5 space-y-4">
+                <div className="flex items-center gap-2 border-b border-border/80 pb-3">
+                  <ShieldCheck className="size-5 text-primary" />
+                  <span className="font-serif font-bold text-foreground text-sm">
+                    {isArabic ? 'دفع آمن عبر PayTabs' : 'Secure Payment via PayTabs'}
+                  </span>
+                </div>
+
+                <div className="space-y-3 text-xs text-foreground">
+                  <p className="text-muted-foreground leading-relaxed">
+                    {isArabic
+                      ? 'بالنقر على الزر أدناه، سيتم تحويلك إلى صفحة الدفع الآمنة التابعة لـ PayTabs لإدخال بيانات بطاقتك. لن يتم تخزين بيانات البطاقة على موقعنا.'
+                      : 'By clicking the button below, you will be redirected to the secure PayTabs payment page to enter your card details. Your card information is never stored on our servers.'}
+                  </p>
+
+                  <div className="flex items-center gap-3 flex-wrap pt-1">
+                    <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground bg-card px-2.5 py-1 rounded-full border border-border">
+                      <ShieldCheck className="size-3 text-emerald-500" /> PCI DSS Compliant
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground bg-card px-2.5 py-1 rounded-full border border-border">
+                      🔒 256-bit SSL Encryption
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {cardError && (
+                <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-3 text-xs font-medium text-destructive flex items-start gap-2">
+                  <AlertCircle className="size-4 shrink-0 mt-0.5" />
+                  <span>{cardError}</span>
+                </div>
               )}
-            </Button>
-          </div>
+
+              <div className="pt-2">
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="h-13 w-full rounded-full bg-primary text-base font-semibold text-primary-foreground shadow-md hover:bg-primary/90 disabled:opacity-50"
+                >
+                  {isSubmitting ? (
+                    <span className="flex items-center gap-2">
+                      <Loader2 className="size-4 animate-spin" />
+                      {isArabic ? 'جارٍ التحويل إلى صفحة الدفع...' : 'Redirecting to payment...'}
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-2">
+                      <CreditCard className="size-5" />
+                      {isArabic ? 'ادفع بالبطاقة البنكية بأمان' : 'Pay Securely with Card'}
+                    </span>
+                  )}
+                </Button>
+              </div>
+            </>
+          )}
 
           <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
             <Lock className="size-3.5 text-primary" />

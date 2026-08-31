@@ -33,8 +33,8 @@ export interface ConsultationDoc {
   updatedAt: Date
 }
 
-export type BookingStatus = 'pending' | 'confirmed' | 'cancelled'
-export type PaymentStatus = 'pending' | 'verified' | 'rejected'
+export type BookingStatus = 'pending' | 'confirmed' | 'cancelled' | 'failed'
+export type PaymentStatus = 'pending' | 'awaiting_payment' | 'verified' | 'rejected' | 'failed'
 export type PaymentMethod = 'instapay' | 'card'
 
 export interface BookingDoc {
@@ -57,6 +57,7 @@ export interface BookingDoc {
   paymentReceiptUrl?: string
   paymentReceiptPublicId?: string
   paymentStatus: PaymentStatus
+  paytabsTranRef?: string
   verifiedBy?: string
   verifiedAt?: Date
   googleMeetLink?: string
@@ -90,11 +91,15 @@ export interface PaymentProcessDoc {
   currency: 'EGP' | 'USD'
   receiptUrl?: string
   receiptPublicId?: string
+  paytabsTranRef?: string
+  paytabsResponseCode?: string
+  paytabsResponseMessage?: string
   status: PaymentStatus
   verifiedBy?: string
   verifiedAt?: Date
   notes?: string
   createdAt: Date
+  processedAt?: Date
 }
 
 export async function getDb() {

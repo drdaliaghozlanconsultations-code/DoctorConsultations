@@ -321,6 +321,13 @@ export const ar: Dictionary = {
       cardNumber: 'رقم البطاقة',
       expiry: 'تاريخ الانتهاء',
       cvc: 'الرمز',
+      payWithCard: 'ادفع بالبطاقة البنكية بأمان',
+      redirecting: 'جارٍ التحويل إلى صفحة الدفع...',
+      cardDescription: 'Visa, Mastercard, Apple Pay عبر PayTabs',
+      paymentConfirmed: 'تم تأكيد الدفع',
+      paymentFailed: 'فشل الدفع',
+      paymentFailedMessage: 'تعذّر إتمام عملية الدفع. يرجى المحاولة مرة أخرى.',
+      tryAgain: 'حاول مرة أخرى',
     },
 
     confirmation: {

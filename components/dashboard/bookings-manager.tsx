@@ -28,6 +28,20 @@ import type { BookingItem, ConsultationItem, UserRole, BookingStatus } from '@/l
 
 const PAGE_SIZE = 15
 
+function formatCreatedDate(date?: string | Date) {
+  if (!date) return '—'
+  const d = new Date(date)
+  if (isNaN(d.getTime())) return '—'
+  return d.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  })
+}
+
 interface BookingsManagerProps {
   initialBookings: BookingItem[]
   initialTotalCount: number
@@ -360,7 +374,7 @@ export function BookingsManager({ initialBookings, initialTotalCount, initialTot
         <div className="flex flex-wrap items-center gap-3">
           {/* Status Tabs */}
           <div className="flex items-center rounded-2xl bg-muted/60 p-1 border border-border/60">
-            {['all', 'pending', 'confirmed', 'cancelled'].map((status) => (
+            {['all', 'pending', 'confirmed', 'failed', 'cancelled'].map((status) => (
               <button
                 key={status}
                 type="button"
@@ -424,25 +438,31 @@ export function BookingsManager({ initialBookings, initialTotalCount, initialTot
                   <tr key={b._id} className="hover:bg-muted/30 transition-colors">
                     {/* Patient */}
                     <td className="py-4 px-6">
-                      <div className="font-bold text-foreground">{b.patientName}</div>
-                      <div className="text-xs font-mono text-primary mt-0.5">{b.reference}</div>
-                      <div className="text-xs text-muted-foreground mt-1 flex flex-col gap-0.5">
-                        <span className="inline-flex items-center gap-1">
-                          <Phone className="size-3 text-muted-foreground" />
-                          {b.phone}
-                        </span>
-                        {b.email && (
-                          <span className="inline-flex items-center gap-1">
-                            <Mail className="size-3 text-muted-foreground" />
-                            {b.email}
-                          </span>
-                        )}
-                        {b.country && (
-                          <span className="text-[10px] text-muted-foreground/80 uppercase">
-                            Country: {b.country}
-                          </span>
-                        )}
-                      </div>
+                       <div className="font-bold text-foreground">{b.patientName}</div>
+                       <div className="text-xs font-mono text-primary mt-0.5">{b.reference}</div>
+                       {b.createdAt && (
+                         <div className="text-[11px] text-muted-foreground/75 mt-1 flex items-center gap-1 font-mono" title="Date when booking was submitted">
+                           <CalendarClock className="size-3 text-muted-foreground/70" />
+                           <span>Created: {formatCreatedDate(b.createdAt)}</span>
+                         </div>
+                       )}
+                       <div className="text-xs text-muted-foreground mt-1 flex flex-col gap-0.5">
+                         <span className="inline-flex items-center gap-1">
+                           <Phone className="size-3 text-muted-foreground" />
+                           {b.phone}
+                         </span>
+                         {b.email && (
+                           <span className="inline-flex items-center gap-1">
+                             <Mail className="size-3 text-muted-foreground" />
+                             {b.email}
+                           </span>
+                         )}
+                         {b.country && (
+                           <span className="text-[10px] text-muted-foreground/80 uppercase">
+                             Country: {b.country}
+                           </span>
+                         )}
+                       </div>
                     </td>
 
                     {/* Consultation */}
@@ -514,10 +534,20 @@ export function BookingsManager({ initialBookings, initialTotalCount, initialTot
                           <CheckCircle2 className="size-3" />
                           Confirmed
                         </span>
+                      ) : b.paymentStatus === 'failed' || b.paymentStatus === 'rejected' || b.status === 'failed' ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-600 border border-rose-500/20">
+                          <XCircle className="size-3" />
+                          Failed
+                        </span>
                       ) : b.status === 'cancelled' ? (
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-600 border border-rose-500/20">
                           <XCircle className="size-3" />
                           Cancelled
+                        </span>
+                      ) : b.paymentStatus === 'awaiting_payment' ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-600 border border-amber-500/20">
+                          <Clock className="size-3" />
+                          Awaiting Payment
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-600 border border-amber-500/20">
@@ -530,7 +560,7 @@ export function BookingsManager({ initialBookings, initialTotalCount, initialTot
                     {/* Actions */}
                     <td className="py-4 px-6 text-right">
                       <div className="inline-flex items-center gap-1.5 justify-end">
-                        {b.status === 'pending' && (
+                        {b.status === 'pending' && b.paymentMethod === 'instapay' && (
                           <>
                             <button
                               type="button"
@@ -783,6 +813,7 @@ export function BookingsManager({ initialBookings, initialTotalCount, initialTot
                   >
                     <option value="pending">Pending</option>
                     <option value="confirmed">Confirmed</option>
+                    <option value="failed">Failed</option>
                     <option value="cancelled">Cancelled</option>
                   </select>
                 </div>

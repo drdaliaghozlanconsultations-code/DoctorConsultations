@@ -324,6 +324,13 @@ export const en = {
       cardNumber: 'Card number',
       expiry: 'Expiry',
       cvc: 'CVC',
+      payWithCard: 'Pay Securely with Card',
+      redirecting: 'Redirecting to payment...',
+      cardDescription: 'Visa, Mastercard, Apple Pay via PayTabs',
+      paymentConfirmed: 'Payment Confirmed',
+      paymentFailed: 'Payment Failed',
+      paymentFailedMessage: 'Your payment could not be processed. Please try again.',
+      tryAgain: 'Try Again',
     },
 
     confirmation: {

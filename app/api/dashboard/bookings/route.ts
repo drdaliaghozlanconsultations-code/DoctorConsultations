@@ -27,7 +27,17 @@ export async function GET(request: Request) {
     const query: any = {}
 
     if (status && status !== 'all') {
-      query.status = status
+      if (status === 'failed') {
+        query.$or = [
+          { paymentStatus: { $in: ['failed', 'rejected'] } },
+          { status: 'failed' },
+        ]
+      } else if (status === 'pending') {
+        query.status = 'pending'
+        query.paymentStatus = { $nin: ['failed', 'rejected'] }
+      } else {
+        query.status = status
+      }
     }
 
     if (date) {

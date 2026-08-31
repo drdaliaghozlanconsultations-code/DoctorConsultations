@@ -235,6 +235,43 @@ export function BookingFlow({
             ? selectedConsultation.priceEGP
             : selectedConsultation?.price || 0
 
+      // ─── Card Payment (PayTabs redirect) ───
+      if (paymentData.paymentMethod === 'card') {
+        const payload = {
+          consultationId: selectedConsultation?.id,
+          patientName: patientDetails.fullName,
+          email: patientDetails.email,
+          phone: patientDetails.phone,
+          whatsapp: patientDetails.whatsapp,
+          country: patientDetails.country || userCountry,
+          date: selectedDate,
+          time: selectedTime,
+          notes: patientDetails.notes,
+          amount: priceAmount,
+          currency,
+          locale,
+        }
+
+        const res = await fetch('/api/payments/paytabs/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+
+        const data = await res.json()
+
+        if (!res.ok || !data.success || !data.redirectUrl) {
+          setStepError(data.error || 'Failed to initiate payment. Please try again.')
+          setIsSubmitting(false)
+          return
+        }
+
+        // Redirect to PayTabs hosted payment page
+        window.location.href = data.redirectUrl
+        return // page will navigate away
+      }
+
+      // ─── InstaPay Payment (existing flow) ───
       const payload = {
         consultationId: selectedConsultation?.id,
         patientName: patientDetails.fullName,

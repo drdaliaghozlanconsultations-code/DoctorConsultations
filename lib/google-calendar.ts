@@ -271,3 +271,93 @@ export async function deleteCalendarEvent(eventId: string): Promise<void> {
   }
 }
 
+/**
+ * Automatically confirms a booking and creates the Google Calendar event & Meet link.
+ * Safe to call multiple times (idempotent: won't duplicate calendar events if already created).
+ */
+export async function confirmBookingAndCreateCalendar(reference: string, tranRef?: string) {
+  const { getBookingsCollection, getConsultationsCollection } = await import('./db')
+  const { ObjectId } = await import('mongodb')
+
+  const bookingsCollection = await getBookingsCollection()
+  const booking = await bookingsCollection.findOne({ reference })
+
+  if (!booking) {
+    console.error('[confirmBookingAndCreateCalendar] Booking not found:', reference)
+    return null
+  }
+
+  // If already confirmed and calendar event already exists, return existing
+  if (booking.status === 'confirmed' && booking.googleCalendarEventId) {
+    return booking
+  }
+
+  let durationMinutes = 30
+  if (booking.consultationId) {
+    try {
+      const consultCol = await getConsultationsCollection()
+      const consultation = await consultCol.findOne({
+        _id: new ObjectId(booking.consultationId),
+      })
+      if (consultation?.durationMinutes) {
+        durationMinutes = consultation.durationMinutes
+      }
+    } catch {}
+  }
+
+  const consultTitle = booking.consultationTitle?.en || 'Medical Consultation'
+  let googleMeetLink = booking.googleMeetLink || ''
+  let googleCalendarEventId = booking.googleCalendarEventId || ''
+  let googleCalendarEventLink = booking.googleCalendarEventLink || ''
+
+  // Create Google Calendar event if not created yet
+  if (!googleCalendarEventId) {
+    try {
+      const calendarResult = await createCalendarEvent({
+        summary: `Dr. Dalia Ghozlan - ${consultTitle} with ${booking.patientName}`,
+        description: [
+          `Patient: ${booking.patientName}`,
+          `Email: ${booking.email}`,
+          `Phone: ${booking.phone}`,
+          `WhatsApp: ${booking.whatsapp}`,
+          `Consultation: ${consultTitle}`,
+          `Reference: ${booking.reference}`,
+          booking.notes ? `Notes: ${booking.notes}` : '',
+        ]
+          .filter(Boolean)
+          .join('\n'),
+        date: booking.date,
+        time: booking.time,
+        durationMinutes,
+        patientEmail: booking.email || undefined,
+        patientName: booking.patientName,
+      })
+
+      googleMeetLink = calendarResult.meetLink
+      googleCalendarEventId = calendarResult.eventId
+      googleCalendarEventLink = calendarResult.eventLink
+      console.log(`[Google Calendar] Successfully created event for ${reference}:`, {
+        googleCalendarEventId,
+        googleMeetLink,
+      })
+    } catch (calErr: any) {
+      console.error(`[Google Calendar] Failed to create event for ${reference}:`, calErr.message)
+    }
+  }
+
+  const now = new Date()
+  const updateData: Record<string, any> = {
+    status: 'confirmed',
+    paymentStatus: 'verified',
+    updatedAt: now,
+    ...(googleCalendarEventId ? { googleCalendarEventId } : {}),
+    ...(googleMeetLink ? { googleMeetLink } : {}),
+    ...(googleCalendarEventLink ? { googleCalendarEventLink } : {}),
+    ...(tranRef ? { paytabsTranRef: tranRef } : {}),
+  }
+
+  await bookingsCollection.updateOne({ reference }, { $set: updateData })
+
+  return { ...booking, ...updateData }
+}
+
