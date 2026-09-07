@@ -1,4 +1,12 @@
+import dns from "dns";
 import { MongoClient, MongoClientOptions } from "mongodb";
+
+// Ensure Node's DNS resolver can query MongoDB Atlas SRV records even if local ISP/router blocks SRV
+try {
+  dns.setServers(["8.8.8.8", "8.8.4.4", "1.1.1.1"]);
+} catch (e) {
+  // Ignore if not supported in runtime
+}
 
 if (!process.env.MONGODB_URI) {
   throw new Error('Invalid/Missing environment variable: "MONGODB_URI"');

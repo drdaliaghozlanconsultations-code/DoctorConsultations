@@ -40,6 +40,45 @@ function FacebookIcon(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   )
 }
+
+function TikTokIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
+    </svg>
+  )
+}
+
+function YouTubeIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <path d="M2.5 17a24.12 24.12 0 0 1 0-10 2 2 0 0 1 1.4-1.4 49.56 49.56 0 0 1 16.2 0A2 2 0 0 1 21.5 7a24.12 24.12 0 0 1 0 10 2 2 0 0 1-1.4 1.4 49.55 49.55 0 0 1-16.2 0A2 2 0 0 1 2.5 17" />
+      <path d="m10 15 5-3-5-3z" fill="currentColor" />
+    </svg>
+  )
+}
 import type { Locale } from '@/lib/i18n/config'
 import type { Dictionary } from '@/lib/i18n'
 import { LanguageSwitcher } from '@/components/language-switcher'
@@ -158,6 +197,33 @@ export function Footer({ locale, dict }: { locale: Locale; dict: Dictionary }) {
             </ul>
             <div className="mt-4 flex items-center gap-2">
               <a
+                href="https://www.facebook.com/share/1Ha2o1E4MK/?mibextid=wwXIfr"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Facebook"
+                className="grid size-9 place-items-center rounded-full border border-border bg-card text-muted-foreground transition-colors hover:text-primary"
+              >
+                <FacebookIcon className="size-4" aria-hidden="true" />
+              </a>
+              <a
+                href="https://www.tiktok.com/@dr.daliaghozlan?_r=1&_t=ZS-99HMlPoXB4s"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="TikTok"
+                className="grid size-9 place-items-center rounded-full border border-border bg-card text-muted-foreground transition-colors hover:text-primary"
+              >
+                <TikTokIcon className="size-4" aria-hidden="true" />
+              </a>
+              <a
+                href="https://youtube.com/@dr.daliaghozlan?si=zI7oA_aA5ApMqcnH"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="YouTube"
+                className="grid size-9 place-items-center rounded-full border border-border bg-card text-muted-foreground transition-colors hover:text-primary"
+              >
+                <YouTubeIcon className="size-4" aria-hidden="true" />
+              </a>
+              <a
                 href="https://www.instagram.com/dr.daliaghozlan/"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -165,15 +231,6 @@ export function Footer({ locale, dict }: { locale: Locale; dict: Dictionary }) {
                 className="grid size-9 place-items-center rounded-full border border-border bg-card text-muted-foreground transition-colors hover:text-primary"
               >
                 <InstagramIcon className="size-4" aria-hidden="true" />
-              </a>
-              <a
-                href="https://www.facebook.com/dalia.ghozlan.5"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Facebook"
-                className="grid size-9 place-items-center rounded-full border border-border bg-card text-muted-foreground transition-colors hover:text-primary"
-              >
-                <FacebookIcon className="size-4" aria-hidden="true" />
               </a>
             </div>
           </div>
