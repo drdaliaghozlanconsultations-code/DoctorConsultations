@@ -367,6 +367,12 @@ export const ar: Dictionary = {
     lastUpdated: 'آخر تحديث',
     lastUpdatedValue: 'أغسطس 2026',
     readPolicy: 'قراءة السياسة',
+    contactCardTitle: 'هل لديكِ أي استفسار حول سياساتنا؟',
+    contactCardSubtitle:
+      'نحن هنا لمساعدتكِ والإجابة على استفساراتكِ بكل سرور.',
+    contactEmailLabel: 'البريد الإلكتروني',
+    contactPhoneLabel: 'الهاتف',
+    contactLocationLabel: 'المقر',
 
     cancellation: {
       title: 'سياسة الإلغاء والاسترداد',
@@ -400,7 +406,7 @@ export const ar: Dictionary = {
         { heading: 'سرية البيانات وأمنها', body: 'تظل جميع تفاصيل الاستشارة والمناقشات الطبية سرية ومحمية تماماً.' },
         { heading: 'مشاركة المعلومات', body: 'نحن لا نبيع ولا نشارك بياناتكِ الشخصية أبداً مع أطراف ثالثة لأغراض تجارية أو تسويقية.' },
         { heading: 'حقوقكِ', body: 'يحق لكِ طلب الوصول إلى بيانات التواصل الخاصة بكِ أو تصحيحها أو حذفها في أي وقت.' },
-        { heading: 'التواصل معنا', body: 'لأي استفسارات متعلقة بالخصوصية، يرجى التواصل مع فريق الدعم لدينا.' },
+        { heading: 'التواصل معنا', body: 'لأي استفسارات متعلقة بالخصوصية، يرجى التواصل مع فريقنا عبر البريد الإلكتروني drdaliaghozlan.consultations@gmail.com.' },
       ],
     },
 
@@ -424,6 +430,8 @@ export const ar: Dictionary = {
     policiesTitle: 'السياسات',
     contactTitle: 'التواصل',
     contactPlaceholder: '[أضيفي بيانات التواصل]',
+    locationOrg: 'مؤسسة مصر للصحة و التنمية المستدامة',
+    locationAddress: 'شارع فاروق عامر، النزهة، مساكن شيراتون، القاهرة.',
     social: 'التواصل الاجتماعي',
     rights: 'جميع الحقوق محفوظة.',
     disclaimer:

@@ -370,6 +370,12 @@ export const en = {
     lastUpdated: 'Last updated',
     lastUpdatedValue: 'August 2026',
     readPolicy: 'Read policy',
+    contactCardTitle: 'Have Questions About Our Policies?',
+    contactCardSubtitle:
+      'We are here to help. Reach out to us directly for any inquiries or assistance.',
+    contactEmailLabel: 'Email',
+    contactPhoneLabel: 'Phone',
+    contactLocationLabel: 'Location',
 
     cancellation: {
       title: 'Cancellation & Refund Policy',
@@ -405,7 +411,7 @@ export const en = {
         { heading: 'Data Privacy & Security', body: 'All consultation details and medical discussions remain strictly confidential and protected.' },
         { heading: 'Sharing of Information', body: 'We never sell or share your personal data with third parties for commercial or marketing purposes.' },
         { heading: 'Your Rights', body: 'You have the right to request access to, correction, or deletion of your personal contact data at any time.' },
-        { heading: 'Contact Us', body: 'For any privacy-related questions, please contact our support team.' },
+        { heading: 'Contact Us', body: 'For any privacy-related questions, please contact our support team at drdaliaghozlan.consultations@gmail.com.' },
       ],
     },
 
@@ -430,6 +436,8 @@ export const en = {
     policiesTitle: 'Policies',
     contactTitle: 'Contact',
     contactPlaceholder: '[Add contact details]',
+    locationOrg: 'Misr Foundation for Health and Sustainable Development',
+    locationAddress: 'Farouk Amer street, El Nozha, Cairo',
     social: 'Social',
     rights: 'All rights reserved.',
     disclaimer:

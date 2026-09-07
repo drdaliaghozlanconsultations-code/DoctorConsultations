@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Mail, Phone } from 'lucide-react'
+import { Mail, Phone, MapPin } from 'lucide-react'
 
 function InstagramIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -122,11 +122,38 @@ export function Footer({ locale, dict }: { locale: Locale; dict: Dictionary }) {
             <ul className="mt-4 flex flex-col gap-2.5 text-sm text-muted-foreground">
               <li className="flex items-center gap-2">
                 <Mail className="size-4 shrink-0" aria-hidden="true" />
-                <span>drdaliaghozlan@gmail.com</span>
+                <a
+                  href="mailto:drdaliaghozlan.consultations@gmail.com"
+                  className="transition-colors hover:text-primary"
+                >
+                  drdaliaghozlan.consultations@gmail.com
+                </a>
               </li>
               <li className="flex items-center gap-2">
                 <Phone className="size-4 shrink-0" aria-hidden="true" />
-                <span dir="ltr">+20 12 88000739</span>
+                <a
+                  href="tel:+201288000739"
+                  dir="ltr"
+                  className="transition-colors hover:text-primary"
+                >
+                  +20 12 88000739
+                </a>
+              </li>
+              <li className="flex items-start gap-2">
+                <MapPin className="size-4 shrink-0 mt-0.5" aria-hidden="true" />
+                <a
+                  href="https://share.google/muL8CF7S1mpXvMGXI"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group transition-colors"
+                >
+                  <span className="block font-medium text-foreground group-hover:text-primary transition-colors">
+                    {dict.footer.locationOrg}
+                  </span>
+                  <span className="block text-xs text-muted-foreground group-hover:text-primary/80 transition-colors mt-0.5">
+                    {dict.footer.locationAddress}
+                  </span>
+                </a>
               </li>
             </ul>
             <div className="mt-4 flex items-center gap-2">
