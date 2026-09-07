@@ -152,11 +152,11 @@ export function StepPayment({
         <p className="mt-2 text-sm text-muted-foreground sm:text-base">
           {paymentMethod === 'instapay'
             ? (isArabic
-                ? 'يرجى إتمام التحويل عبر إنستاباي ورفع صورة الإيصال ليقوم فريق العمل بمراجعة موعدك وتأكيده عبر البريد الإلكتروني.'
-                : 'Please complete the transfer via InstaPay and upload the receipt. Our staff will review it and send a confirmation email.')
+              ? 'يرجى إتمام التحويل عبر إنستاباي ورفع صورة الإيصال ليقوم فريق العمل بمراجعة موعدك وتأكيده عبر البريد الإلكتروني.'
+              : 'Please complete the transfer via InstaPay and upload the receipt. Our staff will review it and send a confirmation email.')
             : (isArabic
-                ? 'سيتم تحويلك إلى صفحة الدفع الآمنة لإتمام العملية ببطاقتك البنكية.'
-                : 'You will be redirected to a secure payment page to complete the transaction with your card.')}
+              ? 'سيتم تحويلك إلى صفحة الدفع الآمنة لإتمام العملية ببطاقتك البنكية.'
+              : 'You will be redirected to a secure payment page to complete the transaction with your card.')}
         </p>
       </div>
 
@@ -176,15 +176,13 @@ export function StepPayment({
                   tabIndex={0}
                   onClick={() => setPaymentMethod('instapay')}
                   onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setPaymentMethod('instapay')}
-                  className={`flex items-center gap-3 p-4 rounded-2xl border cursor-pointer transition-all ${
-                    paymentMethod === 'instapay'
+                  className={`flex items-center gap-3 p-4 rounded-2xl border cursor-pointer transition-all ${paymentMethod === 'instapay'
                       ? 'border-primary bg-primary/10 ring-2 ring-primary/20 shadow-xs'
                       : 'border-border bg-card hover:border-primary/40'
-                  }`}
+                    }`}
                 >
-                  <div className={`size-9 rounded-xl flex items-center justify-center font-bold text-xs ${
-                    paymentMethod === 'instapay' ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'
-                  }`}>
+                  <div className={`size-9 rounded-xl flex items-center justify-center font-bold text-xs ${paymentMethod === 'instapay' ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'
+                    }`}>
                     IP
                   </div>
                   <div>
@@ -204,15 +202,13 @@ export function StepPayment({
                 tabIndex={0}
                 onClick={() => setPaymentMethod('card')}
                 onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setPaymentMethod('card')}
-                className={`flex items-center gap-3 p-4 rounded-2xl border cursor-pointer transition-all ${
-                  paymentMethod === 'card'
+                className={`flex items-center gap-3 p-4 rounded-2xl border cursor-pointer transition-all ${paymentMethod === 'card'
                     ? 'border-primary bg-primary/10 ring-2 ring-primary/20 shadow-xs'
                     : 'border-border bg-card hover:border-primary/40'
-                }`}
+                  }`}
               >
-                <div className={`size-9 rounded-xl flex items-center justify-center ${
-                  paymentMethod === 'card' ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'
-                }`}>
+                <div className={`size-9 rounded-xl flex items-center justify-center ${paymentMethod === 'card' ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'
+                  }`}>
                   <CreditCard className="size-5" />
                 </div>
                 <div>
@@ -367,14 +363,14 @@ export function StepPayment({
                       : 'By clicking the button below, you will be redirected to the secure PayTabs payment page to enter your card details. Your card information is never stored on our servers.'}
                   </p>
 
-                  <div className="flex items-center gap-3 flex-wrap pt-1">
+                  {/* <div className="flex items-center gap-3 flex-wrap pt-1">
                     <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground bg-card px-2.5 py-1 rounded-full border border-border">
                       <ShieldCheck className="size-3 text-emerald-500" /> PCI DSS Compliant
                     </span>
                     <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground bg-card px-2.5 py-1 rounded-full border border-border">
                       🔒 256-bit SSL Encryption
                     </span>
-                  </div>
+                  </div> */}
                 </div>
               </div>
 
