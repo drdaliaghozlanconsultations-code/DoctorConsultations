@@ -79,9 +79,36 @@ function YouTubeIcon(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   )
 }
+function VisaIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 48 32" width="38" height="26" fill="none" {...props}>
+      <rect width="48" height="32" rx="4" fill="#F8FAFC" stroke="#E2E8F0" />
+      <path
+        d="M19.4 20.8h-2.6l1.6-10h2.6l-1.6 10zm7.8-9.8c-.5-.2-1.3-.4-2.3-.4-2.5 0-4.3 1.3-4.3 3.2 0 1.4 1.3 2.2 2.2 2.7.9.5 1.3.8 1.3 1.2 0 .6-.8.9-1.5.9-1 0-1.5-.2-2.3-.5l-.3-.2-.3 1.9c.5.2 1.5.4 2.6.4 2.7 0 4.4-1.3 4.4-3.3 0-1.1-.7-2-2.2-2.7-.9-.5-1.5-.8-1.5-1.2 0-.4.5-.8 1.5-.8.8 0 1.4.2 1.9.4l.2.1.3-1.6zm7.2 6.3l1.2-3.3c0-.1.2-.6.4-1.1h.1c.1.4.2.8.4 1.1l.7 3.3h-2.8zm3.9 3.5h2.3l-2-9.9h-2.1c-.5 0-.9.3-1.1.7l-3.8 9.2h2.7l.5-1.5h3.3l.2 1.5zm-14.7-10l-2.5 6.8-.3-1.4c-.5-1.6-1.9-3.4-3.6-4.3l2.3 8.9h2.7l4.1-10h-2.7z"
+        fill="#1A1F71"
+      />
+      <path
+        d="M10.8 10.8H6.7l-.1.3c3.2.8 5.3 2.8 6.2 5.1l-.9-4.6c-.2-.6-.6-.8-1.1-.8z"
+        fill="#F7B600"
+      />
+    </svg>
+  )
+}
+
+function MastercardIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 48 32" width="38" height="26" fill="none" {...props}>
+      <rect width="48" height="32" rx="4" fill="#F8FAFC" stroke="#E2E8F0" />
+      <circle cx="20" cy="16" r="8" fill="#EB001B" />
+      <circle cx="28" cy="16" r="8" fill="#F79E1B" fillOpacity="0.85" />
+    </svg>
+  )
+}
+
 import type { Locale } from '@/lib/i18n/config'
 import type { Dictionary } from '@/lib/i18n'
 import { LanguageSwitcher } from '@/components/language-switcher'
+import { ShieldCheck } from 'lucide-react'
 
 export function Footer({ locale, dict }: { locale: Locale; dict: Dictionary }) {
   const year = new Date().getFullYear()
@@ -93,6 +120,7 @@ export function Footer({ locale, dict }: { locale: Locale; dict: Dictionary }) {
   ]
   const policies = [
     { href: `/${locale}/policies/cancellation-refund`, label: dict.policies.cancellation.title },
+    { href: `/${locale}/policies/delivery`, label: dict.policies.delivery.title },
     { href: `/${locale}/policies/privacy`, label: dict.policies.privacy.title },
     { href: `/${locale}/policies/terms`, label: dict.policies.terms.title },
   ]
@@ -236,7 +264,32 @@ export function Footer({ locale, dict }: { locale: Locale; dict: Dictionary }) {
           </div>
         </div>
 
-        <div className="mt-12 flex flex-col gap-4 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
+        {/* Payment Gateway Compliance & Accepted Methods */}
+        <div className="mt-10 border-t border-border/70 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+            <span className="font-medium text-foreground">
+              {locale === 'ar' ? 'وسائل وعملات الدفع:' : 'Accepted Payment & Currencies:'}
+            </span>
+            <div className="flex items-center gap-2">
+              <VisaIcon aria-label="Visa" />
+              <MastercardIcon aria-label="MasterCard" />
+            </div>
+            <span className="rounded-md border border-border bg-card px-2 py-0.5 text-[11px] font-semibold text-foreground">
+              EGP & USD
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <ShieldCheck className="size-4 text-primary shrink-0" />
+            <span>
+              {locale === 'ar'
+                ? 'مدفوعات مشفرة وآمنة عبر PayTabs · معتمدة بمعايير PCI-DSS'
+                : 'Secure 256-bit SSL encrypted payments processed via PayTabs · PCI-DSS compliant'}
+            </span>
+          </div>
+        </div>
+
+        <div className="mt-6 flex flex-col gap-4 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs text-muted-foreground">
             &copy; {year} {dict.meta.siteName}. {dict.footer.rights}
           </p>

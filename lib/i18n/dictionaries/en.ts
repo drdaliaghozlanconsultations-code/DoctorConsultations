@@ -366,9 +366,9 @@ export const en = {
     indexSubtitle:
       'Clear, transparent policies for a reassuring experience.',
     disclaimer:
-      'Please review our booking policies prior to confirming your appointment.',
+      'Please review our booking, payment, and cancellation policies prior to confirming your appointment.',
     lastUpdated: 'Last updated',
-    lastUpdatedValue: 'August 2026',
+    lastUpdatedValue: 'September 2026',
     readPolicy: 'Read policy',
     contactCardTitle: 'Have Questions About Our Policies?',
     contactCardSubtitle:
@@ -380,23 +380,59 @@ export const en = {
     cancellation: {
       title: 'Cancellation & Refund Policy',
       intro:
-        'We understand that plans can change. To ensure that appointments remain fair and accessible to all patients, please review the following policy before booking your consultation.',
+        'We understand that plans can change. To ensure that appointments remain fair and accessible to all patients, please review our comprehensive cancellation and refund policy before booking your consultation.',
       sections: [
         {
-          heading: 'Before your appointment',
-          body: 'If you need to reschedule your appointment, please contact us as early as possible (at least one day before your scheduled appointment).',
+          heading: 'Cancellation & Rescheduling Window',
+          body: 'Patients may reschedule or cancel their appointment with a 100% full refund if the request is submitted at least 24 hours prior to the scheduled consultation time. For cancellations submitted less than 24 hours prior to the scheduled appointment, consultation fees are non-refundable as the doctor’s time slot has been exclusively reserved.',
         },
         {
-          heading: 'Missed appointments',
-          body: 'Patients are expected to attend their scheduled online consultation on time. If the patient does not join the consultation within 15 minutes of the scheduled appointment time and does not contact us regarding the delay, the consultation will be considered a no-show and the consultation fee will not be refundable.',
+          heading: 'Missed Appointments & No-Shows',
+          body: 'Patients are expected to attend their scheduled online consultation on time. If a patient does not join the video consultation within 15 minutes of the scheduled appointment time without prior notice, the consultation will be considered a no-show and the fee will not be refundable.',
         },
         {
-          heading: 'Technical difficulties',
-          body: 'If a technical problem prevents the consultation from taking place and the issue is not caused by the patient, reasonable efforts will be made to reschedule the appointment.',
+          heading: 'Doctor Cancellation & Unforeseen Circumstances',
+          body: 'In the rare event an appointment cannot take place due to an unexpected emergency on the doctor’s end or technical issues from our platform, the patient will be offered the choice between rescheduling at no additional cost or receiving an immediate 100% full refund.',
         },
         {
-          heading: 'Confirmation',
-          body: 'By booking an appointment, you confirm that you have read and accepted this cancellation and refund policy.',
+          heading: 'Refund Method & Processing Timeline (Mandatory)',
+          body: 'Refunds will be done only through the Original Mode of Payment. Approved refunds will be processed and will appear on the cardholder’s bank statement within 10 to 14 business days, depending on the customer’s card issuing bank.',
+        },
+        {
+          heading: 'How to Request a Cancellation or Refund',
+          body: 'To request a cancellation, rescheduling, or refund, please reach out to our dedicated support team via email at drdaliaghozlan.consultations@gmail.com or via WhatsApp at +20 12 88000739 with your booking reference and full name.',
+        },
+        {
+          heading: 'Policy Acknowledgment',
+          body: 'By completing a booking on this website, you confirm that you have read, understood, and agreed to this Cancellation & Refund Policy.',
+        },
+      ],
+    },
+
+    delivery: {
+      title: 'Service Fulfillment & Delivery Policy',
+      intro:
+        'This policy details how medical consultations and digital appointment services are fulfilled and delivered upon booking through our website.',
+      sections: [
+        {
+          heading: 'Nature of Services',
+          body: 'All consultations offered by Dr. Dalia Ghozlan on this website are telemedicine and online clinical consultation services conducted electronically via secure, encrypted video conferencing platforms (such as Google Meet or Zoom). We do not sell or ship physical goods.',
+        },
+        {
+          heading: 'Instant Order Confirmation',
+          body: 'Upon successful online payment, an electronic booking confirmation containing your appointment details, consultation type, and transaction reference is immediately generated and sent to the email address and WhatsApp number provided during checkout.',
+        },
+        {
+          heading: 'Consultation Access & Link Delivery',
+          body: 'Prior to your scheduled consultation time, our team will deliver the direct, secure video meeting link to your registered email and WhatsApp. At the appointed time, both the patient and Dr. Dalia join the private virtual room for the consultation.',
+        },
+        {
+          heading: 'Delivery Timeframe & Service Duration',
+          body: 'Electronic confirmation is instantaneous upon payment. The consultation service is fulfilled at the exact date and time selected during booking, for the specified session duration (typically 30 to 45 minutes).',
+        },
+        {
+          heading: 'Delivery Inquiries & Support',
+          body: 'If you do not receive your confirmation email or meeting link within 1 hour before your scheduled session, please contact our support team immediately at drdaliaghozlan.consultations@gmail.com or +20 12 88000739 for prompt assistance.',
         },
       ],
     },
@@ -404,27 +440,84 @@ export const en = {
     privacy: {
       title: 'Privacy Policy',
       intro:
-        'This policy explains how personal information is collected, used, and protected in your consultations with Dr. Dalia.',
+        'This policy explains how personal information, medical details, and payment data are collected, processed, and protected during your consultations and use of this website.',
       sections: [
-        { heading: 'Information We Collect', body: 'We collect personal information such as your name, email address, phone number, WhatsApp number, and country solely for appointment booking and communication.' },
-        { heading: 'How We Use Information', body: 'Your information is strictly used to schedule, manage, and deliver your online consultation, and to send appointment reminders.' },
-        { heading: 'Data Privacy & Security', body: 'All consultation details and medical discussions remain strictly confidential and protected.' },
-        { heading: 'Sharing of Information', body: 'We never sell or share your personal data with third parties for commercial or marketing purposes.' },
-        { heading: 'Your Rights', body: 'You have the right to request access to, correction, or deletion of your personal contact data at any time.' },
-        { heading: 'Contact Us', body: 'For any privacy-related questions, please contact our support team at drdaliaghozlan.consultations@gmail.com.' },
+        {
+          heading: 'Information We Collect',
+          body: 'We collect personal information including your full name, email address, phone number, WhatsApp number, and country solely for appointment booking, scheduling, and direct medical communication.',
+        },
+        {
+          heading: 'Cardholder Data & Payment Security',
+          body: 'All credit/debit card details and personally identifiable information will NOT be stored, sold, shared, rented, or leased to any third parties. All online card transactions are processed securely through our authorized payment gateway (PayTabs) utilizing 256-bit SSL encryption and full compliance with PCI-DSS standards.',
+        },
+        {
+          heading: 'How We Use Your Information',
+          body: 'Your information is used strictly to manage, schedule, and deliver your online consultation, provide clinical follow-up, and send booking confirmations and reminders.',
+        },
+        {
+          heading: 'Medical Confidentiality',
+          body: 'All clinical consultations, health records, and medical discussions are held under strict physician-patient confidentiality and comply with applicable medical ethics regulations.',
+        },
+        {
+          heading: 'No Third-Party Commercial Sharing',
+          body: 'We never sell, rent, or trade your personal or health data to advertisers, commercial partners, or any unauthorized third parties.',
+        },
+        {
+          heading: 'Your Privacy Rights',
+          body: 'You have the right to access, review, update, or request the deletion of your personal contact data from our records at any time by contacting our support team.',
+        },
+        {
+          heading: 'Modifications to Policy',
+          body: 'The website policies and terms & conditions may be changed or updated occasionally to meet regulatory standards and requirements. Customers are encouraged to frequently visit these sections to be updated about changes on the website. Modifications will be effective on the day they are posted.',
+        },
       ],
     },
 
     terms: {
       title: 'Terms & Conditions',
-      intro: 'These terms govern the use of this website and booking services for consultations with Dr. Dalia.',
+      intro:
+        'These terms and conditions govern your access to and use of this website and the booking of online medical consultations with Dr. Dalia Ghozlan.',
       sections: [
-        { heading: 'Acceptance of Terms', body: 'By scheduling an appointment, you agree to comply with these terms and conditions.' },
-        { heading: 'Nature of Online Consultation', body: 'Online consultations provide evidence-based medical advice and guidance. They are not intended for immediate life-threatening medical emergencies.' },
-        { heading: 'Not for Medical Emergencies', body: 'If you are experiencing an urgent medical emergency, please visit the nearest hospital or emergency department immediately.' },
-        { heading: 'Bookings & Confirmation', body: 'Bookings are finalized upon date selection and completion of payment.' },
-        { heading: 'Limitation of Liability', body: 'Consultations are conducted based on the information provided by the patient during the session.' },
-        { heading: 'Changes to Terms', body: 'We reserve the right to update these terms as needed to reflect operational changes.' },
+        {
+          heading: 'Acceptance of Terms',
+          body: 'By accessing this website and booking a consultation, you confirm that you have read, understood, and agreed to be bound by these Terms and Conditions and all applicable policies.',
+        },
+        {
+          heading: 'Country of Domicile & Governing Law',
+          body: 'Egypt is our country of domicile. Any purchase, dispute, or claim arising out of or in connection with this website shall be governed and construed in accordance with the laws of Egypt.',
+        },
+        {
+          heading: 'Accepted Payment Methods & Currencies',
+          body: 'We accept payments online using Visa and MasterCard credit and debit cards in Egyptian Pounds (EGP) and United States Dollars (USD). Transactions are securely processed through our certified payment provider, PayTabs.',
+        },
+        {
+          heading: 'Eligibility & Prohibition of Minors',
+          body: 'Minors under the age of 18 shall be prohibited to register as a User of this website and are not allowed to transact or use the website. A parent or legal guardian must book and attend consultations on behalf of any patient under 18 years of age.',
+        },
+        {
+          heading: 'Cardholder Records & Proof of Purchase',
+          body: 'The cardholder must retain a copy of transaction records, booking confirmations, and merchant policies and rules for future reference.',
+        },
+        {
+          heading: 'Sanctions & OFAC Compliance',
+          body: 'We will NOT deal with or provide any services or products to any OFAC (Office of Foreign Assets Control) sanctioned countries or prohibited entities, in full accordance with the applicable laws of Egypt.',
+        },
+        {
+          heading: 'Payment Security & Data Transmission',
+          body: 'If you make a payment for our services on our website, the details you are asked to submit will be provided directly to our payment provider (PayTabs) via a secured connection with end-to-end encryption.',
+        },
+        {
+          heading: 'Nature of Online Medical Consultations',
+          body: 'Online consultations provide professional, evidence-based clinical guidance, medical evaluation, and treatment recommendations. They are conducted based on the clinical information provided by the patient.',
+        },
+        {
+          heading: 'Not for Medical Emergencies',
+          body: 'Online consultations are strictly not intended for acute, life-threatening, or severe medical emergencies. If you or a family member are experiencing a medical emergency, please call your local emergency services or visit the nearest hospital emergency room immediately.',
+        },
+        {
+          heading: 'Changes to Terms',
+          body: 'We reserve the right to modify these Terms and Conditions at any time. Any changes will be posted on this page and will become effective immediately upon publication.',
+        },
       ],
     },
   },

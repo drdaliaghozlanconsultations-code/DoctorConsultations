@@ -36,6 +36,11 @@ export default async function PoliciesIndexPage({
       description: policies.cancellation.intro,
     },
     {
+      href: `/${lang}/policies/delivery`,
+      title: policies.delivery.title,
+      description: policies.delivery.intro,
+    },
+    {
       href: `/${lang}/policies/privacy`,
       title: policies.privacy.title,
       description: policies.privacy.intro,
@@ -62,7 +67,7 @@ export default async function PoliciesIndexPage({
         </p>
       </Reveal>
 
-      <div className="mt-12 grid gap-6 sm:grid-cols-3">
+      <div className="mt-12 grid gap-6 sm:grid-cols-2">
         {list.map((item, index) => (
           <Reveal key={item.href} delay={index * 80}>
             <Link
