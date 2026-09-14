@@ -323,7 +323,7 @@ export const ar: Dictionary = {
       cvc: 'الرمز',
       payWithCard: 'ادفع بالبطاقة البنكية بأمان',
       redirecting: 'جارٍ التحويل إلى صفحة الدفع...',
-      cardDescription: 'Visa, Mastercard, Apple Pay عبر PayTabs',
+      cardDescription: 'Visa, Mastercard, Apple Pay عبر كاشير (Kashier)',
       paymentConfirmed: 'تم تأكيد الدفع',
       paymentFailed: 'فشل الدفع',
       paymentFailedMessage: 'تعذّر إتمام عملية الدفع. يرجى المحاولة مرة أخرى.',

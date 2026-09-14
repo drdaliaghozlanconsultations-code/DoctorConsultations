@@ -12,6 +12,8 @@ import {
   MessageSquare,
   Info,
   Loader2,
+  Video,
+  ExternalLink,
 } from 'lucide-react'
 import { formatFullDate, formatSlotLabel } from '@/lib/data/availability'
 import { CtaLink } from '@/components/cta-link'
@@ -31,6 +33,7 @@ interface BookingData {
   paymentMethod: string
   currency: string
   amount: number
+  googleMeetLink?: string
 }
 
 export function ConfirmationClient({
@@ -87,7 +90,7 @@ export function ConfirmationClient({
             clearInterval(interval)
           }
         })
-        .catch(() => {})
+        .catch(() => { })
     }, 3000) // poll every 3 seconds
 
     // Stop polling after 2 minutes
@@ -157,25 +160,23 @@ export function ConfirmationClient({
 
       {/* Status Badge */}
       <div
-        className={`mt-4 inline-flex items-center gap-1.5 px-4 py-1 rounded-full text-xs font-bold border ${
-          paymentSuccess
+        className={`mt-4 inline-flex items-center gap-1.5 px-4 py-1 rounded-full text-xs font-bold border ${paymentSuccess
             ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20'
             : paymentFailed
-            ? 'bg-destructive/10 text-destructive border-destructive/20'
-            : 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20'
-        }`}
+              ? 'bg-destructive/10 text-destructive border-destructive/20'
+              : 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20'
+          }`}
       >
         <span
-          className={`size-2 rounded-full ${
-            paymentSuccess ? 'bg-emerald-500' : paymentFailed ? 'bg-destructive animate-pulse' : 'bg-amber-500 animate-pulse'
-          }`}
+          className={`size-2 rounded-full ${paymentSuccess ? 'bg-emerald-500' : paymentFailed ? 'bg-destructive animate-pulse' : 'bg-amber-500 animate-pulse'
+            }`}
         />
         <span>
           {paymentSuccess
             ? (isArabic ? 'تم الدفع والتأكيد بنجاح' : 'Payment Confirmed')
             : paymentFailed
-            ? (isArabic ? 'فشل الدفع' : 'Payment Failed')
-            : (isArabic ? 'جارٍ التحقق من الدفع...' : 'Verifying Payment...')}
+              ? (isArabic ? 'فشل الدفع' : 'Payment Failed')
+              : (isArabic ? 'جارٍ التحقق من الدفع...' : 'Verifying Payment...')}
         </span>
       </div>
 
@@ -184,20 +185,20 @@ export function ConfirmationClient({
         {paymentSuccess
           ? d.title
           : paymentFailed
-          ? (isArabic ? 'تعذر إتمام الدفع' : 'Payment Could Not Be Completed')
-          : (isArabic ? 'جارٍ التحقق من حالة الدفع' : 'Verifying Payment Status')}
+            ? (isArabic ? 'تعذر إتمام الدفع' : 'Payment Could Not Be Completed')
+            : (isArabic ? 'جارٍ التحقق من حالة الدفع' : 'Verifying Payment Status')}
       </h2>
 
       <p className="mt-2.5 text-base text-muted-foreground leading-relaxed max-w-lg mx-auto">
         {paymentSuccess
           ? (isArabic
-              ? 'تم استلام الدفع بنجاح. ستصلك رسالة تأكيد عبر البريد الإلكتروني قريباً مع تفاصيل الاستشارة.'
-              : 'Your payment has been received successfully. You will receive a confirmation email shortly with your consultation details.')
+            ? 'تم استلام الدفع بنجاح. ستصلك رسالة تأكيد عبر البريد الإلكتروني قريباً مع تفاصيل الاستشارة.'
+            : 'Your payment has been received successfully. You will receive a confirmation email shortly with your consultation details.')
           : paymentFailed
-          ? (isArabic
+            ? (isArabic
               ? 'لم يتم خصم أي مبلغ. يمكنك المحاولة مرة أخرى أو اختيار طريقة دفع أخرى.'
               : 'No charge was made. You can try again or choose a different payment method.')
-          : (isArabic
+            : (isArabic
               ? 'يتم الآن التحقق من عملية الدفع. يرجى الانتظار قليلاً...'
               : 'Your payment is being verified. Please wait a moment...')}
       </p>
@@ -263,6 +264,34 @@ export function ConfirmationClient({
             </dl>
           </div>
 
+          {/* Google Meet Video Session Link */}
+          {/* {booking.googleMeetLink && (
+            <div className="mt-6 rounded-3xl border border-emerald-500/30 bg-emerald-500/5 p-6 text-start shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <div className="grid size-12 place-items-center rounded-2xl bg-emerald-500/15 text-emerald-600 shrink-0">
+                  <Video className="size-6" />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                    {isArabic ? 'رابط استشارة الفيديو (Google Meet)' : 'Google Meet Video Consultation'}
+                  </p>
+                  <p className="mt-0.5 font-mono text-sm font-semibold text-foreground break-all">
+                    {booking.googleMeetLink}
+                  </p>
+                </div>
+              </div>
+              <a
+                href={booking.googleMeetLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-6 py-3 text-sm font-bold text-white shadow-md hover:bg-emerald-700 transition shrink-0"
+              >
+                <span>{isArabic ? 'الانضمام للاستشارة' : 'Join Session'}</span>
+                <ExternalLink className="size-4" />
+              </a>
+            </div>
+          )} */}
+
           {/* Next Steps */}
           <div className="mt-8 rounded-3xl border border-border bg-card p-6 text-start shadow-sm sm:p-8">
             <h3 className="font-serif text-lg font-semibold text-foreground">
@@ -271,15 +300,15 @@ export function ConfirmationClient({
             <ol className="mt-4 space-y-3.5">
               {(isArabic
                 ? [
-                    'تم تأكيد الدفع وحجز الموعد بنجاح.',
-                    'ستصلك رسالة تأكيد عبر البريد الإلكتروني تتضمن تفاصيل الموعد.',
-                    'سيتم إرسال رابط الاستشارة الأونلاين قبل الموعد المحدد.',
-                  ]
+                  'تم تأكيد الدفع وحجز الموعد بنجاح.',
+                  'ستصلك رسالة تأكيد عبر البريد الإلكتروني تتضمن تفاصيل الموعد.',
+                  'سيتم إرسال رابط الاستشارة الأونلاين قبل الموعد المحدد.',
+                ]
                 : [
-                    'Your payment has been confirmed and your appointment is booked.',
-                    'You will receive a confirmation email with your appointment details.',
-                    'A secure video consultation link will be sent to your email prior to your session.',
-                  ]
+                  'Your payment has been confirmed and your appointment is booked.',
+                  'You will receive a confirmation email with your appointment details.',
+                  'A secure video consultation link will be sent to your email prior to your session.',
+                ]
               ).map((step, index) => (
                 <li key={index} className="flex items-start gap-3 text-sm text-muted-foreground">
                   <span className="grid size-6 shrink-0 place-items-center rounded-full bg-accent text-xs font-bold text-primary">

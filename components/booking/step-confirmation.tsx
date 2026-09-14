@@ -29,6 +29,8 @@ interface StepConfirmationProps {
   time: string | null
   details: PatientDetails
   onReset: () => void
+  isVerified?: boolean
+  meetLink?: string
 }
 
 export function StepConfirmation({
@@ -40,6 +42,8 @@ export function StepConfirmation({
   time,
   details,
   onReset,
+  isVerified = false,
+  meetLink,
 }: StepConfirmationProps) {
   const d = dict.booking.confirmation
   const isArabic = locale === 'ar'
@@ -47,21 +51,45 @@ export function StepConfirmation({
   return (
     <div className="mx-auto max-w-2xl text-center">
       {/* Animated Status Icon */}
-      <div className="mx-auto grid size-20 place-items-center rounded-full bg-amber-500/10 text-amber-600 animate-fade-in border border-amber-500/20 shadow-inner">
-        <Clock className="size-10" />
-      </div>
+      {isVerified ? (
+        <div className="mx-auto grid size-20 place-items-center rounded-full bg-emerald-500/10 text-emerald-600 animate-fade-in border border-emerald-500/20 shadow-inner">
+          <CheckCircle2 className="size-10 stroke-[2.2]" />
+        </div>
+      ) : (
+        <div className="mx-auto grid size-20 place-items-center rounded-full bg-amber-500/10 text-amber-600 animate-fade-in border border-amber-500/20 shadow-inner">
+          <Clock className="size-10" />
+        </div>
+      )}
 
       {/* Status Badge */}
-      <div className="mt-4 inline-flex items-center gap-1.5 px-4 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
-        <span className="size-2 rounded-full bg-amber-500 animate-pulse" />
-        <span>{d.pendingBadge || (isArabic ? 'الحجز قيد المراجعة والتحقق' : 'Pending Staff Verification')}</span>
+      <div
+        className={`mt-4 inline-flex items-center gap-1.5 px-4 py-1 rounded-full text-xs font-bold border ${
+          isVerified
+            ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20'
+            : 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20'
+        }`}
+      >
+        <span
+          className={`size-2 rounded-full ${
+            isVerified ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'
+          }`}
+        />
+        <span>
+          {isVerified
+            ? (isArabic ? 'تم الدفع والتأكيد بنجاح' : 'Payment Confirmed & Verified')
+            : (d.pendingBadge || (isArabic ? 'الحجز قيد المراجعة والتحقق' : 'Pending Staff Verification'))}
+        </span>
       </div>
 
       <h2 className="mt-4 font-serif text-3xl font-semibold text-foreground sm:text-4xl">
         {d.title}
       </h2>
       <p className="mt-2.5 text-base text-muted-foreground leading-relaxed max-w-lg mx-auto">
-        {d.subtitle}
+        {isVerified
+          ? (isArabic
+              ? 'تم استلام الدفع بنجاح وتأكيد موعد استشارتك. ستصلك كافة التفاصيل ورابط الاجتماع عبر بريدك الإلكتروني.'
+              : 'Your payment has been received successfully and your consultation is confirmed. Meeting details have been sent to your email.')
+          : d.subtitle}
       </p>
 
       {/* Reference Badge */}
@@ -74,21 +102,50 @@ export function StepConfirmation({
         </span>
       </div>
 
-      {/* Staff Review Notice Box */}
-      <div className="mt-8 rounded-3xl border border-amber-500/30 bg-amber-500/5 p-5 text-start flex items-start gap-3.5">
-        <Info className="size-5 text-amber-600 shrink-0 mt-0.5" />
-        <div className="text-xs text-foreground/90 space-y-1">
-          <p className="font-bold text-foreground">
-            {isArabic ? 'تأكيد الموعد عبر إنستاباي' : 'InstaPay Verification Notice'}
-          </p>
-          <p className="text-muted-foreground leading-relaxed">
-            {d.pendingNotice ||
-              (isArabic
-                ? 'يقوم فريق العمل بمراجعة إيصال التحويل وسيتم إرسال بريد إلكتروني لتأكيد موعدك خلال ساعتين.'
-                : 'Our staff will review your InstaPay transfer receipt and send a confirmation email with your appointment details within a couple of hours.')}
-          </p>
+      {/* Notice Box */}
+      {isVerified ? (
+        <div className="mt-8 rounded-3xl border border-emerald-500/30 bg-emerald-500/5 p-5 text-start flex items-start gap-3.5">
+          <ShieldCheck className="size-5 text-emerald-600 shrink-0 mt-0.5" />
+          <div className="text-xs text-foreground/90 space-y-1 flex-1">
+            <p className="font-bold text-foreground">
+              {isArabic ? 'تم تأكيد موعدك ومقابلة Google Meet' : 'Appointment & Google Meet Confirmed'}
+            </p>
+            <p className="text-muted-foreground leading-relaxed">
+              {isArabic
+                ? 'تم إنشاء حدث التقويم وإرسال دعوة رسمية مع رابط Google Meet إلى بريدك الإلكتروني المسجل.'
+                : 'A calendar invitation with your secure Google Meet link has been sent to your email.'}
+            </p>
+            {meetLink && (
+              <div className="pt-2">
+                <a
+                  href={meetLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-emerald-600 text-white font-medium text-xs hover:bg-emerald-700 transition-colors"
+                >
+                  <span>{isArabic ? 'فتح رابط المقابلة Google Meet' : 'Open Google Meet Link'}</span>
+                  <ArrowRight className={`size-3 ${isArabic ? 'rotate-180' : ''}`} />
+                </a>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="mt-8 rounded-3xl border border-amber-500/30 bg-amber-500/5 p-5 text-start flex items-start gap-3.5">
+          <Info className="size-5 text-amber-600 shrink-0 mt-0.5" />
+          <div className="text-xs text-foreground/90 space-y-1">
+            <p className="font-bold text-foreground">
+              {isArabic ? 'تأكيد الموعد عبر إنستاباي' : 'InstaPay Verification Notice'}
+            </p>
+            <p className="text-muted-foreground leading-relaxed">
+              {d.pendingNotice ||
+                (isArabic
+                  ? 'يقوم فريق العمل بمراجعة إيصال التحويل وسيتم إرسال بريد إلكتروني لتأكيد موعدك خلال ساعتين.'
+                  : 'Our staff will review your InstaPay transfer receipt and send a confirmation email with your appointment details within a couple of hours.')}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Booking Summary Box */}
       <div className="mt-8 rounded-3xl border border-border bg-card p-6 text-start shadow-sm sm:p-8">

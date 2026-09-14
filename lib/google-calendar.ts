@@ -353,10 +353,29 @@ export async function confirmBookingAndCreateCalendar(reference: string, tranRef
     ...(googleCalendarEventId ? { googleCalendarEventId } : {}),
     ...(googleMeetLink ? { googleMeetLink } : {}),
     ...(googleCalendarEventLink ? { googleCalendarEventLink } : {}),
-    ...(tranRef ? { paytabsTranRef: tranRef } : {}),
+    ...(tranRef ? { kashierSessionId: tranRef, paytabsTranRef: tranRef } : {}),
   }
 
   await bookingsCollection.updateOne({ reference }, { $set: updateData })
+
+  // Also update payment_processes collection to verified
+  try {
+    const { getPaymentProcessesCollection } = await import('./db')
+    const paymentProcessesCollection = await getPaymentProcessesCollection()
+    await paymentProcessesCollection.updateOne(
+      { bookingReference: reference },
+      {
+        $set: {
+          status: 'verified',
+          verifiedAt: now,
+          processedAt: now,
+          ...(tranRef ? { kashierSessionId: tranRef } : {}),
+        },
+      },
+    )
+  } catch (pErr: any) {
+    console.warn(`[confirmBookingAndCreateCalendar] Could not update payment_process for ${reference}:`, pErr?.message)
+  }
 
   return { ...booking, ...updateData }
 }

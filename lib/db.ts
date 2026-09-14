@@ -57,6 +57,7 @@ export interface BookingDoc {
   paymentReceiptUrl?: string
   paymentReceiptPublicId?: string
   paymentStatus: PaymentStatus
+  kashierSessionId?: string
   paytabsTranRef?: string
   verifiedBy?: string
   verifiedAt?: Date
@@ -91,6 +92,9 @@ export interface PaymentProcessDoc {
   currency: 'EGP' | 'USD'
   receiptUrl?: string
   receiptPublicId?: string
+  kashierSessionId?: string
+  kashierTransactionId?: string
+  kashierResponseMessage?: string
   paytabsTranRef?: string
   paytabsResponseCode?: string
   paytabsResponseMessage?: string

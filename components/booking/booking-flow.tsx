@@ -13,6 +13,7 @@ import { StepDetails, type PatientDetails } from './step-details'
 import { StepReview } from './step-review'
 import { StepPayment } from './step-payment'
 import { StepConfirmation } from './step-confirmation'
+import { BookingResultModal, type BookingModalData } from './booking-result-modal'
 
 export function BookingFlow({
   locale,
@@ -79,6 +80,65 @@ export function BookingFlow({
   const [stepError, setStepError] = React.useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [bookingReference, setBookingReference] = React.useState<string>('')
+
+  // Payment Return Modal State (from Kashier / Paytabs redirect)
+  const urlRef = searchParams.get('ref')
+  const urlStatus = searchParams.get('status')
+  const [resultModalOpen, setResultModalOpen] = React.useState(false)
+  const [resultModalStatus, setResultModalStatus] = React.useState<'success' | 'failed'>('success')
+  const [resultModalData, setResultModalData] = React.useState<BookingModalData | null>(null)
+
+  // Detect payment return in URL and open Success or Failure Modal
+  React.useEffect(() => {
+    if (!urlRef || !urlStatus) return
+
+    if (urlStatus === 'success') {
+      setResultModalStatus('success')
+      setResultModalOpen(true)
+      setBookingReference(urlRef)
+      setCurrentStep(6)
+
+      fetch(`/api/bookings/lookup?ref=${encodeURIComponent(urlRef)}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && data.data) {
+            const b = data.data
+            setResultModalData({
+              reference: b.reference,
+              consultationTitle: b.consultationTitle,
+              date: b.date,
+              time: b.time,
+              patientName: b.patientName,
+              email: b.email,
+              googleMeetLink: b.googleMeetLink,
+              paymentStatus: b.paymentStatus,
+              status: b.status,
+            })
+            if (b.date) setSelectedDate(b.date)
+            if (b.time) setSelectedTime(b.time)
+            if (b.patientName || b.email) {
+              setPatientDetails((prev) => ({
+                ...prev,
+                fullName: b.patientName || prev.fullName,
+                email: b.email || prev.email,
+                whatsapp: b.whatsapp || prev.whatsapp,
+              }))
+            }
+          }
+        })
+        .catch(() => {})
+    } else if (urlStatus === 'failed') {
+      setResultModalStatus('failed')
+      setResultModalData({ reference: urlRef })
+      setResultModalOpen(true)
+      setCurrentStep(5)
+      setStepError(
+        locale === 'ar'
+          ? 'تعذر إتمام عملية الدفع. يمكنك إعادة المحاولة أو اختيار إنستاباي.'
+          : 'Payment could not be completed. You can try again or choose InstaPay.',
+      )
+    }
+  }, [urlRef, urlStatus, locale])
 
   // 1. Fetch Geolocation and Currency preference on mount
   React.useEffect(() => {
@@ -235,7 +295,7 @@ export function BookingFlow({
             ? selectedConsultation.priceEGP
             : selectedConsultation?.price || 0
 
-      // ─── Card Payment (PayTabs redirect) ───
+      // ─── Card Payment (Kashier redirect) ───
       if (paymentData.paymentMethod === 'card') {
         const payload = {
           consultationId: selectedConsultation?.id,
@@ -252,22 +312,23 @@ export function BookingFlow({
           locale,
         }
 
-        const res = await fetch('/api/payments/paytabs/create', {
+        const res = await fetch('/api/payments/kashier/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         })
 
         const data = await res.json()
+        const redirectTarget = data.sessionUrl || data.redirectUrl
 
-        if (!res.ok || !data.success || !data.redirectUrl) {
+        if (!res.ok || !data.success || !redirectTarget) {
           setStepError(data.error || 'Failed to initiate payment. Please try again.')
           setIsSubmitting(false)
           return
         }
 
-        // Redirect to PayTabs hosted payment page
-        window.location.href = data.redirectUrl
+        // Redirect to Kashier hosted checkout session
+        window.location.href = redirectTarget
         return // page will navigate away
       }
 
@@ -421,8 +482,24 @@ export function BookingFlow({
             time={selectedTime}
             details={patientDetails}
             onReset={handleReset}
+            isVerified={resultModalData?.paymentStatus === 'verified'}
+            meetLink={resultModalData?.googleMeetLink}
           />
         )}
+
+        {/* Modal: Payment Success / Failure Popup */}
+        <BookingResultModal
+          isOpen={resultModalOpen}
+          onClose={() => setResultModalOpen(false)}
+          status={resultModalStatus}
+          bookingData={resultModalData}
+          locale={locale}
+          dict={dict}
+          onRetry={() => {
+            setResultModalOpen(false)
+            setCurrentStep(5)
+          }}
+        />
 
         {/* Navigation Buttons for Steps 1–4 */}
         {currentStep <= 4 && (

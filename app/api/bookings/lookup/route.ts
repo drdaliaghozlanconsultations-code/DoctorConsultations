@@ -31,22 +31,92 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    let currentBooking = booking
+
+    // If still awaiting_payment with a Kashier session, check if it concluded
+    if (currentBooking.paymentStatus === 'awaiting_payment' && currentBooking.kashierSessionId) {
+      try {
+        const kashierBase =
+          process.env.KASHIER_MODE === 'live'
+            ? 'https://api.kashier.io'
+            : 'https://test-api.kashier.io'
+        const res = await fetch(
+          `${kashierBase}/v3/payment/sessions/${currentBooking.kashierSessionId}`,
+          { cache: 'no-store' },
+        )
+        const json = await res.json()
+        const session = json.data || json
+        const now = new Date()
+
+        const status = (session.status || '').toUpperCase()
+        const isPaid =
+          status === 'SUCCESS' ||
+          status === 'PAID' ||
+          status === 'APPROVED'
+
+        const isExpired = session.expireAt && new Date(session.expireAt) < now
+        const isFailed =
+          status === 'FAILURE' ||
+          status === 'FAILED' ||
+          status === 'EXPIRED' ||
+          status === 'ABANDONED' ||
+          json.error?.cause === 'Session expired' ||
+          isExpired
+
+        if (isPaid) {
+          const { confirmBookingAndCreateCalendar } = await import(
+            '@/lib/google-calendar'
+          )
+          const updated = await confirmBookingAndCreateCalendar(
+            currentBooking.reference,
+            currentBooking.kashierSessionId,
+          )
+          if (updated) currentBooking = updated
+        } else if (isFailed) {
+          await bookingsCollection.updateOne(
+            { _id: currentBooking._id },
+            { $set: { paymentStatus: 'failed', status: 'failed', updatedAt: now } },
+          )
+          const { getPaymentProcessesCollection } = await import('@/lib/db')
+          const paymentProcessesCollection = await getPaymentProcessesCollection()
+          await paymentProcessesCollection.updateOne(
+            { bookingReference: currentBooking.reference },
+            {
+              $set: {
+                status: 'failed',
+                kashierResponseMessage: session.declinedReason || 'FAILED',
+                processedAt: now,
+              },
+            },
+          )
+          currentBooking = {
+            ...currentBooking,
+            paymentStatus: 'failed',
+            status: 'failed',
+          }
+        }
+      } catch (sessionErr) {
+        console.warn('[Booking Lookup] Session query warning:', sessionErr)
+      }
+    }
+
     // Return only safe, limited fields for the public-facing confirmation page
     return NextResponse.json({
       success: true,
       data: {
-        reference: booking.reference,
-        consultationTitle: booking.consultationTitle,
-        date: booking.date,
-        time: booking.time,
-        patientName: booking.patientName,
-        email: booking.email,
-        whatsapp: booking.whatsapp,
-        status: booking.status,
-        paymentStatus: booking.paymentStatus,
-        paymentMethod: booking.paymentMethod,
-        currency: booking.currency,
-        amount: booking.amount,
+        reference: currentBooking.reference,
+        consultationTitle: currentBooking.consultationTitle,
+        date: currentBooking.date,
+        time: currentBooking.time,
+        patientName: currentBooking.patientName,
+        email: currentBooking.email,
+        whatsapp: currentBooking.whatsapp,
+        status: currentBooking.status,
+        paymentStatus: currentBooking.paymentStatus,
+        paymentMethod: currentBooking.paymentMethod,
+        currency: currentBooking.currency,
+        amount: currentBooking.amount,
+        googleMeetLink: currentBooking.googleMeetLink,
       },
     })
   } catch (error: any) {

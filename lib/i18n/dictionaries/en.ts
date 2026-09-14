@@ -326,7 +326,7 @@ export const en = {
       cvc: 'CVC',
       payWithCard: 'Pay Securely with Card',
       redirecting: 'Redirecting to payment...',
-      cardDescription: 'Visa, Mastercard, Apple Pay via PayTabs',
+      cardDescription: 'Visa, Mastercard, Apple Pay via Kashier',
       paymentConfirmed: 'Payment Confirmed',
       paymentFailed: 'Payment Failed',
       paymentFailedMessage: 'Your payment could not be processed. Please try again.',

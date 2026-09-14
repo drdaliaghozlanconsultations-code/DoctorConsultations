@@ -131,7 +131,7 @@ export function StepPayment({
 
     if (paymentMethod === 'card') {
       // Card payment is handled via redirect, so call onSubmitPayment
-      // which will trigger the PayTabs flow in booking-flow.tsx
+      // which will trigger the Kashier flow in booking-flow.tsx
       onSubmitPayment({ paymentMethod: 'card' })
       return
     }
@@ -196,7 +196,7 @@ export function StepPayment({
                 </div>
               )}
 
-              {/* Card / Apple Pay (Available for both EGP & USD via PayTabs) */}
+              {/* Card / Apple Pay (Available for both EGP & USD via Kashier) */}
               <div
                 role="button"
                 tabIndex={0}
@@ -216,7 +216,7 @@ export function StepPayment({
                     {isArabic ? 'بطاقة بنكية / Apple Pay' : 'Credit / Debit Card / Apple Pay'}
                   </p>
                   <p className="text-[11px] text-muted-foreground">
-                    {isArabic ? 'Visa, Mastercard, Apple Pay عبر PayTabs' : 'Visa, Mastercard, Apple Pay via PayTabs'}
+                    {isArabic ? 'Visa, Mastercard, Apple Pay عبر كاشير (Kashier)' : 'Visa, Mastercard, Apple Pay via Kashier'}
                   </p>
                 </div>
               </div>
@@ -352,15 +352,15 @@ export function StepPayment({
                 <div className="flex items-center gap-2 border-b border-border/80 pb-3">
                   <ShieldCheck className="size-5 text-primary" />
                   <span className="font-serif font-bold text-foreground text-sm">
-                    {isArabic ? 'دفع آمن عبر PayTabs' : 'Secure Payment via PayTabs'}
+                    {isArabic ? 'دفع آمن عبر كاشير (Kashier)' : 'Secure Payment via Kashier'}
                   </span>
                 </div>
 
                 <div className="space-y-3 text-xs text-foreground">
                   <p className="text-muted-foreground leading-relaxed">
                     {isArabic
-                      ? 'بالنقر على الزر أدناه، سيتم تحويلك إلى صفحة الدفع الآمنة التابعة لـ PayTabs لإدخال بيانات بطاقتك. لن يتم تخزين بيانات البطاقة على موقعنا.'
-                      : 'By clicking the button below, you will be redirected to the secure PayTabs payment page to enter your card details. Your card information is never stored on our servers.'}
+                      ? 'بالنقر على الزر أدناه، سيتم تحويلك إلى صفحة الدفع الآمنة التابعة لـ كاشير (Kashier) لإدخال بيانات بطاقتك. لن يتم تخزين بيانات البطاقة على موقعنا.'
+                      : 'By clicking the button below, you will be redirected to the secure Kashier payment page to enter your card details. Your card information is never stored on our servers.'}
                   </p>
 
                   {/* <div className="flex items-center gap-3 flex-wrap pt-1">

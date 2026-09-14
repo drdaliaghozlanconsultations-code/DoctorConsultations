@@ -5,17 +5,17 @@ import {
   getConsultationsCollection,
   type BookingDoc,
 } from '@/lib/db'
-import { createPaymentPage } from '@/lib/paytabs'
+import { createPaymentSession } from '@/lib/kashier'
 import { ObjectId } from 'mongodb'
 
 export const dynamic = 'force-dynamic'
 
 /**
- * POST /api/payments/paytabs/create
+ * POST /api/payments/kashier/create
  *
- * Creates a pending booking in MongoDB and initiates a PayTabs
- * hosted-payment-page session. Returns the redirect URL so the
- * client can send the patient to PayTabs.
+ * Creates a pending booking in MongoDB and initiates a Kashier
+ * Payment Session (hosted checkout). Returns the sessionUrl so the
+ * client can redirect the patient to Kashier.
  */
 export async function POST(request: Request) {
   try {
@@ -106,40 +106,43 @@ export async function POST(request: Request) {
       createdAt: new Date(),
     })
 
-    // 3. Build callback and return URLs
-    // Supports ngrok (e.g. PAYTABS_CALLBACK_URL or NEXT_PUBLIC_BASE_URL) in dev, and https://drdaliaghozlan.com in production.
-    const origin = request.headers.get('origin') || process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+    // 3. Build merchant redirect URL (Kashier requires HTTPS)
+    const rawOrigin =
+      request.headers.get('origin') ||
+      (request.headers.get('referer') ? new URL(request.headers.get('referer')!).origin : null) ||
+      process.env.NEXT_PUBLIC_BASE_URL ||
+      ''
     const publicDomain =
-      process.env.PAYTABS_CALLBACK_URL ||
+      (process.env.KASHIER_WEBHOOK_URL?.startsWith('https://') ? process.env.KASHIER_WEBHOOK_URL : null) ||
+      (rawOrigin.startsWith('https://') ? rawOrigin : null) ||
       (process.env.NEXT_PUBLIC_BASE_URL?.startsWith('https://') ? process.env.NEXT_PUBLIC_BASE_URL : null) ||
       'https://drdaliaghozlan.com'
 
-    const callbackUrl = `${publicDomain.replace(/\/$/, '')}/api/payments/paytabs/callback`
-    const returnUrl = `${origin.replace(/\/$/, '')}/api/payments/paytabs/return?locale=${locale}&ref=${reference}`
+    const merchantRedirect = `${publicDomain.replace(/\/$/, '')}/api/payments/kashier/return?locale=${locale}&ref=${reference}`
 
-    // 4. Create PayTabs payment session
-    const consultationName = locale === 'ar' ? consultationTitle.ar : consultationTitle.en
-    const paytabsResponse = await createPaymentPage({
-      cartId: reference,
-      cartAmount: Number(amount),
-      cartCurrency: newBooking.currency,
-      cartDescription: `Consultation: ${consultationName} - ${reference}`,
+    // 4. Create Kashier payment session
+    const sessionResponse = await createPaymentSession({
+      order: reference,
+      amount: Number(amount),
+      currency: newBooking.currency,
+      merchantRedirect,
       customer: {
+        reference: email.trim(),
         name: patientName.trim(),
         email: email.trim(),
         phone: phone.trim(),
-        country: (country || 'EG').toUpperCase(),
       },
-      callbackUrl,
-      returnUrl,
+      display: locale === 'ar' ? 'ar' : 'en',
     })
 
-    // 5. Store the PayTabs transaction reference
+    const sessionId = sessionResponse.sessionId || ''
+
+    // 5. Store the Kashier session reference
     await bookingsCollection.updateOne(
       { _id: insertResult.insertedId },
       {
         $set: {
-          paytabsTranRef: paytabsResponse.tran_ref,
+          kashierSessionId: sessionId,
           updatedAt: new Date(),
         },
       },
@@ -149,19 +152,20 @@ export async function POST(request: Request) {
       { bookingReference: reference },
       {
         $set: {
-          paytabsTranRef: paytabsResponse.tran_ref,
+          kashierSessionId: sessionId,
         },
       },
     )
 
     return NextResponse.json({
       success: true,
-      redirectUrl: paytabsResponse.redirect_url,
+      sessionUrl: sessionResponse.sessionUrl,
+      redirectUrl: sessionResponse.sessionUrl,
       reference,
-      tranRef: paytabsResponse.tran_ref,
+      sessionId,
     })
   } catch (error: any) {
-    console.error('PayTabs create payment error:', error)
+    console.error('Kashier create payment error:', error)
     return NextResponse.json(
       { success: false, error: error.message || 'Failed to initiate payment' },
       { status: 500 },
