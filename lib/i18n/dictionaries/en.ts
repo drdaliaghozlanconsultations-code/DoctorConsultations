@@ -380,27 +380,35 @@ export const en = {
     cancellation: {
       title: 'Cancellation & Refund Policy',
       intro:
-        'We understand that plans can change. To ensure that appointments remain fair and accessible to all patients, please review our comprehensive cancellation and refund policy before booking your consultation.',
+        'We understand that plans can change. To ensure that appointments remain fair and accessible to all patients and compliant with our payment partner standards, please review our cancellation and refund policy before booking your consultation.',
       sections: [
         {
-          heading: 'Cancellation & Rescheduling Window',
-          body: 'Patients may reschedule or cancel their appointment with a 100% full refund if the request is submitted at least 24 hours prior to the scheduled consultation time. For cancellations submitted less than 24 hours prior to the scheduled appointment, consultation fees are non-refundable as the doctor’s time slot has been exclusively reserved.',
+          heading: 'Cancellation Window & Pre-Session Notice (14 Days)',
+          body: 'Consultation bookings can be cancelled with a 100% full refund within 14 days of purchase, provided that the cancellation request is submitted prior to the scheduled consultation session (at least 24 hours before the scheduled appointment time). Because the doctor’s time is exclusively reserved, cancellations requested less than 24 hours before the appointment or after the session has already taken place are non-refundable.',
+        },
+        {
+          heading: 'How to Request a Cancellation & Refund',
+          body: 'Cancellations and refunds are not processed through an automated website feature. To request a booking cancellation and refund, please contact our support team directly via email at drdaliaghozlan.consultations@gmail.com or via WhatsApp at +20 12 88000739 with your booking reference and full name. Our team will verify your booking and process the refund to your original payment card.',
+        },
+        {
+          heading: 'Electronic Service Delivery & No Cancellation Fees',
+          body: 'Because our services are telemedicine medical consultations delivered electronically, no shipping or physical delivery fees apply. Approved cancellations submitted within the 14-day window prior to the consultation session are free of charge with no hidden deductions.',
+        },
+        {
+          heading: 'Refund Method & Execution (Original Mode of Payment)',
+          body: 'Refunds for cancelled bookings will be done through the same way of purchase. Refunds will be issued strictly to the original card used during the transaction, and no cash or third-party refunds will be provided.',
+        },
+        {
+          heading: 'Refund Processing Timeline (7 Days)',
+          body: 'The refund will be processed in seven (7) days from receiving the cancellation request. Please note that it varies according to the card issuer policy when that amount will be reflected in the cardholder balance.',
+        },
+        {
+          heading: 'Doctor Rescheduling & Unforeseen Circumstances',
+          body: 'In the rare event an appointment cannot take place due to an unexpected emergency on the doctor’s end or platform technical issues, the patient will be offered the choice between rescheduling at no additional cost or receiving an immediate 100% full refund.',
         },
         {
           heading: 'Missed Appointments & No-Shows',
-          body: 'Patients are expected to attend their scheduled online consultation on time. If a patient does not join the video consultation within 15 minutes of the scheduled appointment time without prior notice, the consultation will be considered a no-show and the fee will not be refundable.',
-        },
-        {
-          heading: 'Doctor Cancellation & Unforeseen Circumstances',
-          body: 'In the rare event an appointment cannot take place due to an unexpected emergency on the doctor’s end or technical issues from our platform, the patient will be offered the choice between rescheduling at no additional cost or receiving an immediate 100% full refund.',
-        },
-        {
-          heading: 'Refund Method & Processing Timeline (Mandatory)',
-          body: 'Refunds will be done only through the Original Mode of Payment. Approved refunds will be processed and will appear on the cardholder’s bank statement within 10 to 14 business days, depending on the customer’s card issuing bank.',
-        },
-        {
-          heading: 'How to Request a Cancellation or Refund',
-          body: 'To request a cancellation, rescheduling, or refund, please reach out to our dedicated support team via email at drdaliaghozlan.consultations@gmail.com or via WhatsApp at +20 12 88000739 with your booking reference and full name.',
+          body: 'Patients are expected to attend their scheduled online consultation on time. If a patient does not join the video consultation within 15 minutes of the scheduled appointment time without prior notice, the session will be considered a no-show and will not be eligible for a refund.',
         },
         {
           heading: 'Policy Acknowledgment',
@@ -415,16 +423,20 @@ export const en = {
         'This policy details how medical consultations and digital appointment services are fulfilled and delivered upon booking through our website.',
       sections: [
         {
-          heading: 'Nature of Services',
-          body: 'All consultations offered by Dr. Dalia Ghozlan on this website are telemedicine and online clinical consultation services conducted electronically via secure, encrypted video conferencing platforms (such as Google Meet or Zoom). We do not sell or ship physical goods.',
+          heading: 'Nature of Services & Electronic Delivery',
+          body: 'All consultations offered by Dr. Dalia Ghozlan on this website are telemedicine and digital clinical consultation services conducted electronically via secure, encrypted video conferencing platforms (such as Google Meet or Zoom). We do not sell or ship physical goods.',
         },
         {
-          heading: 'Instant Order Confirmation',
+          heading: 'Consultation Fulfillment & Scheduled Session Dates',
+          body: 'Consultation fulfillment dates and session times are determined based on the date and time selected upon placing your booking. Confirmation is delivered electronically and instantaneously upon booking, and the consultation service is fulfilled at the exact date and time selected.',
+        },
+        {
+          heading: 'Instant Booking Confirmation',
           body: 'Upon successful online payment, an electronic booking confirmation containing your appointment details, consultation type, and transaction reference is immediately generated and sent to the email address and WhatsApp number provided during checkout.',
         },
         {
           heading: 'Consultation Access & Link Delivery',
-          body: 'Prior to your scheduled consultation time, our team will deliver the direct, secure video meeting link to your registered email and WhatsApp. At the appointed time, both the patient and Dr. Dalia join the private virtual room for the consultation.',
+          body: 'Prior to your scheduled consultation time, our team delivers the direct, secure video meeting link to your registered email and WhatsApp. At the appointed time, both the patient and Dr. Dalia join the private virtual room for the consultation.',
         },
         {
           heading: 'Delivery Timeframe & Service Duration',
@@ -448,7 +460,7 @@ export const en = {
         },
         {
           heading: 'Cardholder Data & Payment Security',
-          body: 'All credit/debit card details and personally identifiable information will NOT be stored, sold, shared, rented, or leased to any third parties. All online card transactions are processed securely through our authorized payment gateway (PayTabs) utilizing 256-bit SSL encryption and full compliance with PCI-DSS standards.',
+          body: 'All credit/debit card details and personally identifiable information will NOT be stored, sold, shared, rented, or leased to any third parties. All online card transactions are processed securely through our authorized payment gateway (Kashier) utilizing 256-bit SSL encryption and full compliance with PCI-DSS standards.',
         },
         {
           heading: 'How We Use Your Information',
@@ -488,7 +500,7 @@ export const en = {
         },
         {
           heading: 'Accepted Payment Methods & Currencies',
-          body: 'We accept payments online using Visa and MasterCard credit and debit cards in Egyptian Pounds (EGP) and United States Dollars (USD). Transactions are securely processed through our certified payment provider, PayTabs.',
+          body: 'We accept payments online using Visa and MasterCard credit and debit cards in Egyptian Pounds (EGP) and United States Dollars (USD). Transactions are securely processed through our certified payment provider, Kashier.',
         },
         {
           heading: 'Eligibility & Prohibition of Minors',
@@ -500,11 +512,19 @@ export const en = {
         },
         {
           heading: 'Sanctions & OFAC Compliance',
-          body: 'We will NOT deal with or provide any services or products to any OFAC (Office of Foreign Assets Control) sanctioned countries or prohibited entities, in full accordance with the applicable laws of Egypt.',
+          body: 'We will NOT deal with or provide any services to any OFAC (Office of Foreign Assets Control) sanctioned countries or prohibited entities, in full accordance with the applicable laws of Egypt.',
         },
         {
           heading: 'Payment Security & Data Transmission',
-          body: 'If you make a payment for our services on our website, the details you are asked to submit will be provided directly to our payment provider (PayTabs) via a secured connection with end-to-end encryption.',
+          body: 'If you make a payment for our services on our website, the details you are asked to submit will be provided directly to our payment provider (Kashier) via a secured connection with end-to-end encryption.',
+        },
+        {
+          heading: 'Booking Cancellation & Refunds',
+          body: 'Consultation bookings can be cancelled within 14 days of purchase, provided that the cancellation request is submitted prior to the scheduled consultation session (at least 24 hours prior to the appointment time). Once a consultation session has commenced or taken place, the service is deemed fully delivered and non-refundable. Cancellations and refunds are not processed through an automated website feature; all cancellation requests must be sent directly to our support team via email (drdaliaghozlan.consultations@gmail.com) or WhatsApp (+20 12 88000739) with your booking reference and patient name. All eligible cancellations within 14 days of purchase will be free of charge. Refunds will be issued through the original mode of payment and processed within seven (7) days of receiving the cancellation request, noting that the reflection timeline varies according to the card issuer policy.',
+        },
+        {
+          heading: 'Consultation Fulfillment & Scheduled Session Dates',
+          body: 'Consultation session dates and times are determined based on the schedule chosen upon placing your booking. For online consultations, services are delivered electronically at the appointed session time. Session dates are scheduled appointments that may be adjusted in coordination with the patient should clinical scheduling or technical needs arise.',
         },
         {
           heading: 'Nature of Online Medical Consultations',

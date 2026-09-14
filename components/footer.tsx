@@ -268,23 +268,20 @@ export function Footer({ locale, dict }: { locale: Locale; dict: Dictionary }) {
         <div className="mt-10 border-t border-border/70 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
             <span className="font-medium text-foreground">
-              {locale === 'ar' ? 'وسائل وعملات الدفع:' : 'Accepted Payment & Currencies:'}
+              {locale === 'ar' ? 'وسائل الدفع المقبولة:' : 'Accepted Payment Methods:'}
             </span>
             <div className="flex items-center gap-2">
               <VisaIcon aria-label="Visa" />
               <MastercardIcon aria-label="MasterCard" />
             </div>
-            <span className="rounded-md border border-border bg-card px-2 py-0.5 text-[11px] font-semibold text-foreground">
-              EGP & USD
-            </span>
           </div>
 
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <ShieldCheck className="size-4 text-primary shrink-0" />
             <span>
               {locale === 'ar'
-                ? 'مدفوعات مشفرة وآمنة عبر PayTabs · معتمدة بمعايير PCI-DSS'
-                : 'Secure 256-bit SSL encrypted payments processed via PayTabs · PCI-DSS compliant'}
+                ? 'مدفوعات مشفرة وآمنة عبر Kashier · معتمدة بمعايير PCI-DSS'
+                : 'Secure 256-bit SSL encrypted payments processed via Kashier · PCI-DSS compliant'}
             </span>
           </div>
         </div>
