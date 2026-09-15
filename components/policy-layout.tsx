@@ -1,5 +1,5 @@
 import type { Locale } from '@/lib/i18n/config'
-import { Shield, ArrowLeft, ArrowRight } from 'lucide-react'
+import { Shield, ArrowLeft, ArrowRight, Mail } from 'lucide-react'
 import Link from 'next/link'
 import { Reveal } from '@/components/reveal'
 
@@ -80,6 +80,30 @@ export function PolicyLayout({
           </Reveal>
         ))}
       </div>
+
+      <Reveal delay={150} className="mt-12">
+        <div className="rounded-3xl border border-border bg-card p-6 sm:p-8 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h3 className="font-serif text-lg font-semibold text-foreground">
+                {locale === 'ar' ? 'هل لديكِ أي استفسار؟' : 'Have questions or need assistance?'}
+              </h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {locale === 'ar'
+                  ? 'يسعدنا تواصلكِ معنا مباشرة عبر البريد الإلكتروني.'
+                  : 'Feel free to reach out to our team directly via email.'}
+              </p>
+            </div>
+            <a
+              href="mailto:drdaliaghozlan.consultations@gmail.com"
+              className="inline-flex items-center gap-2 self-start sm:self-auto rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm shrink-0"
+            >
+              <Mail className="size-4" />
+              <span>drdaliaghozlan.consultations@gmail.com</span>
+            </a>
+          </div>
+        </div>
+      </Reveal>
     </div>
   )
 }

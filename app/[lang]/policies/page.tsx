@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { ShieldCheck, FileText, ArrowRight, ArrowLeft } from 'lucide-react'
+import { ShieldCheck, FileText, ArrowRight, ArrowLeft, Mail, Phone, MapPin } from 'lucide-react'
 import type { Locale } from '@/lib/i18n/config'
 import { getDictionary } from '@/lib/i18n'
 import { Reveal } from '@/components/reveal'
@@ -36,6 +36,11 @@ export default async function PoliciesIndexPage({
       description: policies.cancellation.intro,
     },
     {
+      href: `/${lang}/policies/delivery`,
+      title: policies.delivery.title,
+      description: policies.delivery.intro,
+    },
+    {
       href: `/${lang}/policies/privacy`,
       title: policies.privacy.title,
       description: policies.privacy.intro,
@@ -62,7 +67,7 @@ export default async function PoliciesIndexPage({
         </p>
       </Reveal>
 
-      <div className="mt-12 grid gap-6 sm:grid-cols-3">
+      <div className="mt-12 grid gap-6 sm:grid-cols-2">
         {list.map((item, index) => (
           <Reveal key={item.href} delay={index * 80}>
             <Link
@@ -89,6 +94,78 @@ export default async function PoliciesIndexPage({
           </Reveal>
         ))}
       </div>
+
+      <Reveal delay={250} className="mt-14">
+        <div className="rounded-3xl border border-border bg-card p-6 sm:p-8 shadow-sm">
+          <div className="max-w-xl">
+            <h2 className="font-serif text-2xl font-semibold text-foreground">
+              {policies.contactCardTitle}
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              {policies.contactCardSubtitle}
+            </p>
+          </div>
+
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <a
+              href="mailto:drdaliaghozlan.consultations@gmail.com"
+              className="group flex items-start gap-3 rounded-2xl border border-border bg-secondary/30 p-4 transition-all hover:border-primary/40 hover:bg-secondary/60"
+            >
+              <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-accent text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                <Mail className="size-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  {policies.contactEmailLabel}
+                </span>
+                <p className="mt-0.5 break-all text-sm font-medium text-foreground group-hover:text-primary transition-colors">
+                  drdaliaghozlan.consultations@gmail.com
+                </p>
+              </div>
+            </a>
+
+            <a
+              href="tel:+201288000739"
+              dir="ltr"
+              className="group flex items-start gap-3 rounded-2xl border border-border bg-secondary/30 p-4 transition-all hover:border-primary/40 hover:bg-secondary/60"
+            >
+              <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-accent text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                <Phone className="size-5" />
+              </div>
+              <div className="min-w-0 flex-1 text-start">
+                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  {policies.contactPhoneLabel}
+                </span>
+                <p className="mt-0.5 text-sm font-medium text-foreground group-hover:text-primary transition-colors">
+                  +20 12 88000739
+                </p>
+              </div>
+            </a>
+
+            <a
+              href="https://share.google/muL8CF7S1mpXvMGXI"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex items-start gap-3 rounded-2xl border border-border bg-secondary/30 p-4 transition-all hover:border-primary/40 hover:bg-secondary/60 sm:col-span-2 lg:col-span-1"
+            >
+              <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-accent text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                <MapPin className="size-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  {policies.contactLocationLabel}
+                </span>
+                <p className="mt-0.5 text-sm font-medium text-foreground group-hover:text-primary transition-colors">
+                  {dict.footer.locationOrg}
+                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {dict.footer.locationAddress}
+                </p>
+              </div>
+            </a>
+          </div>
+        </div>
+      </Reveal>
     </div>
   )
 }
