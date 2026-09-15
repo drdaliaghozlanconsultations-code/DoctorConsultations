@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getBookingsCollection, getPaymentProcessesCollection } from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
@@ -6,16 +6,25 @@ export const dynamic = 'force-dynamic'
 /**
  * GET /api/payments/expire
  *
- * Cron-style endpoint — should be called every 30 minutes.
+ * Vercel Cron Job — runs every 30 minutes (configured in vercel.json).
  * Marks card payment bookings that have been in "awaiting_payment"
  * status for more than 1 hour as "failed".
  *
- * Can be triggered by:
- * - Vercel Cron Jobs (vercel.json)
- * - External cron service (e.g. cron-job.org)
- * - Manual call: GET /api/payments/expire
+ * Protected by CRON_SECRET in production so only Vercel can trigger it.
+ * In development, the check is skipped for manual testing.
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
+  // Verify Vercel CRON_SECRET in production
+  const cronSecret = process.env.CRON_SECRET
+  if (cronSecret) {
+    const authHeader = request.headers.get('authorization')
+    if (authHeader !== `Bearer ${cronSecret}`) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 },
+      )
+    }
+  }
   try {
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000)
 

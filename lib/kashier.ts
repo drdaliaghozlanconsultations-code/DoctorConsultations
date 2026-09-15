@@ -91,7 +91,7 @@ export async function createPaymentSession(
   const secretKey = getSecretKey()
   const merchantId = getMerchantId()
 
-  const expireMinutes = params.expireMinutes || 15
+  const expireMinutes = params.expireMinutes || 30
   const expireAt = new Date(Date.now() + expireMinutes * 60 * 1000).toISOString()
 
   // Kashier strictly requires HTTPS for merchantRedirect
