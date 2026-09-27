@@ -10,14 +10,20 @@ export function ServiceCard({
   locale,
   dict,
   isMostWanted,
+  currency = 'EGP',
 }: {
   service: ServiceItem
   locale: Locale
   dict: Dictionary
   isMostWanted?: boolean
+  currency?: 'EGP' | 'USD'
 }) {
   const isArabic = locale === 'ar'
   const showBadge = isMostWanted !== undefined ? isMostWanted : Boolean(service.isMostBooked)
+  const displayPrice =
+    currency === 'USD'
+      ? (service.priceUSD ?? service.startingPrice)
+      : (service.priceEGP ?? service.startingPrice)
 
   return (
     <article
@@ -67,7 +73,7 @@ export function ServiceCard({
             {dict.common.from}
           </span>
           <span className="font-serif text-3xl font-semibold text-foreground">
-            {formatPrice(service.startingPrice, locale, 'EGP')}
+            {formatPrice(displayPrice, locale, currency)}
           </span>
         </div>
 

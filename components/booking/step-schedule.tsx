@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { Calendar, Clock, Globe, Loader2 } from 'lucide-react'
+import { Calendar, Clock, Globe, Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
 import type { Locale } from '@/lib/i18n/config'
 import type { Dictionary } from '@/lib/i18n'
 import {
@@ -36,6 +36,17 @@ export function StepSchedule({
   const [activeDate, setActiveDate] = React.useState<string | null>(selectedDate || null)
   const [slots, setSlots] = React.useState<TimeSlot[]>([])
   const [loadingSlots, setLoadingSlots] = React.useState(false)
+
+  const scrollContainerRef = React.useRef<HTMLDivElement>(null)
+
+  const handleScroll = (direction: 'left' | 'right') => {
+    if (!scrollContainerRef.current) return
+    const scrollAmount = 320
+    scrollContainerRef.current.scrollBy({
+      left: direction === 'left' ? -scrollAmount : scrollAmount,
+      behavior: 'smooth',
+    })
+  }
 
   // 1. Fetch available days from API (lightweight — no booking checks)
   React.useEffect(() => {
@@ -116,55 +127,107 @@ export function StepSchedule({
             <Calendar className="size-4 text-primary" />
             <span>{d.chooseDate}</span>
           </div>
-          {loadingDays && (
-            <span className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Loader2 className="size-3 animate-spin text-primary" />
-              <span>Loading schedule...</span>
-            </span>
-          )}
+
+          <div className="flex items-center gap-3">
+            {loadingDays && (
+              <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Loader2 className="size-3 animate-spin text-primary" />
+                <span>Loading schedule...</span>
+              </span>
+            )}
+
+            {/* Desktop Navigation Buttons in Header */}
+            <div className="hidden md:flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => handleScroll('left')}
+                className="flex size-7 items-center justify-center rounded-full border border-border bg-card text-foreground transition-all hover:bg-accent hover:border-primary/50 active:scale-95 cursor-pointer shadow-2xs"
+                title={locale === 'ar' ? 'السابق' : 'Previous dates'}
+                aria-label="Previous dates"
+              >
+                <ChevronLeft className="size-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => handleScroll('right')}
+                className="flex size-7 items-center justify-center rounded-full border border-border bg-card text-foreground transition-all hover:bg-accent hover:border-primary/50 active:scale-95 cursor-pointer shadow-2xs"
+                title={locale === 'ar' ? 'التالي' : 'Next dates'}
+                aria-label="Next dates"
+              >
+                <ChevronRight className="size-3.5" />
+              </button>
+            </div>
+          </div>
         </div>
 
-        <div className="mt-4 flex snap-x gap-2.5 overflow-x-auto pb-2 scrollbar-none [&::-webkit-scrollbar]:hidden">
-          {loadingDays && days.length === 0 ? (
-            Array.from({ length: 7 }).map((_, i) => (
-              <div
-                key={i}
-                className="flex min-w-24 shrink-0 flex-col items-center justify-center rounded-2xl border border-border/50 bg-card/50 p-3.5 animate-pulse"
-              >
-                <div className="h-4 w-12 rounded bg-muted"></div>
-              </div>
-            ))
-          ) : (
-            days.map((day: DayAvailability) => {
-              const isSelected = activeDate === day.date
-              return (
-                <button
-                  key={day.date}
-                  type="button"
-                  disabled={!day.hasSlots}
-                  onClick={() => setActiveDate(day.date)}
-                  title={day.reason ? `${day.date}: ${day.reason}` : undefined}
-                  className={cn(
-                    'flex min-w-24 shrink-0 snap-start flex-col items-center rounded-2xl border p-3.5 text-center transition-all outline-none',
-                    isSelected
-                      ? 'border-primary bg-primary text-primary-foreground shadow-sm'
-                      : day.hasSlots
-                        ? 'border-border bg-card hover:border-primary/40 hover:bg-accent/40'
-                        : 'cursor-not-allowed border-border/50 bg-muted/40 opacity-40',
-                  )}
+        <div className="relative mt-4">
+          {/* Left Arrow Button on Carousel (Desktop) */}
+          <button
+            type="button"
+            onClick={() => handleScroll('left')}
+            className="hidden md:flex absolute -left-4 top-1/2 -translate-y-1/2 z-10 size-9 items-center justify-center rounded-full border border-border bg-card/95 shadow-md backdrop-blur-xs text-foreground hover:bg-accent hover:border-primary transition-all active:scale-95 cursor-pointer"
+            title={locale === 'ar' ? 'السابق' : 'Scroll left'}
+            aria-label="Scroll left"
+          >
+            <ChevronLeft className="size-4" />
+          </button>
+
+          <div
+            ref={scrollContainerRef}
+            className="flex snap-x gap-2.5 overflow-x-auto pb-2 scrollbar-none [&::-webkit-scrollbar]:hidden scroll-smooth"
+          >
+            {loadingDays && days.length === 0 ? (
+              Array.from({ length: 7 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="flex min-w-24 shrink-0 flex-col items-center justify-center rounded-2xl border border-border/50 bg-card/50 p-3.5 animate-pulse"
                 >
-                  <span className="text-xs font-semibold uppercase tracking-wider">
-                    {formatDateLabel(day.date, locale)}
-                  </span>
-                  {!day.hasSlots && day.reason && (
-                    <span className="mt-1 text-[9px] text-muted-foreground/70 truncate max-w-[80px]">
-                      {day.reason}
+                  <div className="h-4 w-12 rounded bg-muted"></div>
+                </div>
+              ))
+            ) : (
+              days.map((day: DayAvailability) => {
+                const isSelected = activeDate === day.date
+                return (
+                  <button
+                    key={day.date}
+                    type="button"
+                    disabled={!day.hasSlots}
+                    onClick={() => setActiveDate(day.date)}
+                    title={day.reason ? `${day.date}: ${day.reason}` : undefined}
+                    className={cn(
+                      'flex min-w-24 shrink-0 snap-start flex-col items-center rounded-2xl border p-3.5 text-center transition-all outline-none',
+                      isSelected
+                        ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+                        : day.hasSlots
+                          ? 'border-border bg-card hover:border-primary/40 hover:bg-accent/40'
+                          : 'cursor-not-allowed border-border/50 bg-muted/40 opacity-40',
+                    )}
+                  >
+                    <span className="text-xs font-semibold uppercase tracking-wider">
+                      {formatDateLabel(day.date, locale)}
                     </span>
-                  )}
-                </button>
-              )
-            })
-          )}
+                    {!day.hasSlots && day.reason && (
+                      <span className="mt-1 text-[9px] text-muted-foreground/70 truncate max-w-[80px]">
+                        {day.reason}
+                      </span>
+                    )}
+                  </button>
+                )
+              })
+            )}
+          </div>
+
+          {/* Right Arrow Button on Carousel (Desktop) */}
+          <button
+            type="button"
+            onClick={() => handleScroll('right')}
+            className="hidden md:flex absolute -right-4 top-1/2 -translate-y-1/2 z-10 size-9 items-center justify-center rounded-full border border-border bg-card/95 shadow-md backdrop-blur-xs text-foreground hover:bg-accent hover:border-primary transition-all active:scale-95 cursor-pointer"
+            title={locale === 'ar' ? 'التالي' : 'Scroll right'}
+            aria-label="Scroll right"
+          >
+            <ChevronRight className="size-4" />
+          </button>
         </div>
       </div>
 

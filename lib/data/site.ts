@@ -18,6 +18,8 @@ export interface ServiceItem {
   breakAfterMinutes?: number
   isMostBooked?: boolean
   startingPrice: number // in the display currency below
+  priceUSD?: number
+  priceEGP?: number
 }
 
 export interface StatItem {
@@ -44,6 +46,8 @@ export interface ConsultationType {
   breakAfterMinutes?: number
   isMostBooked?: boolean
   price: number
+  priceUSD?: number
+  priceEGP?: number
 }
 
 export const currency = {

@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import type { Locale } from '@/lib/i18n/config'
 import type { Dictionary } from '@/lib/i18n'
-import { consultationTypes as fallbackConsultations, type ConsultationType } from '@/lib/data/site'
+import type { ConsultationType } from '@/lib/data/site'
 import { StepIndicator } from './step-indicator'
 import { StepConsultation } from './step-consultation'
 import { StepSchedule } from './step-schedule'
@@ -15,13 +15,21 @@ import { StepPayment } from './step-payment'
 import { StepConfirmation } from './step-confirmation'
 import { BookingResultModal, type BookingModalData } from './booking-result-modal'
 
+interface BookingFlowProps {
+  locale: Locale
+  dict: Dictionary
+  initialConsultations?: (ConsultationType & { priceEGP?: number; priceUSD?: number })[]
+  initialCurrency?: 'EGP' | 'USD'
+  initialCountry?: string
+}
+
 export function BookingFlow({
   locale,
   dict,
-}: {
-  locale: Locale
-  dict: Dictionary
-}) {
+  initialConsultations,
+  initialCurrency = 'EGP',
+  initialCountry = 'EG',
+}: BookingFlowProps) {
   const searchParams = useSearchParams()
   const initialConsultationParam = searchParams.get('consultation')
 
@@ -29,13 +37,17 @@ export function BookingFlow({
   const [currentStep, setCurrentStep] = React.useState(1)
 
   // Geo & Currency State
-  const [currency, setCurrency] = React.useState<'EGP' | 'USD'>('EGP')
-  const [userCountry, setUserCountry] = React.useState('EG')
+  const [currency, setCurrency] = React.useState<'EGP' | 'USD'>(initialCurrency)
+  const [userCountry, setUserCountry] = React.useState(initialCountry)
 
-  // Consultations list from DB or fallback
+  const [loadingConsultations, setLoadingConsultations] = React.useState<boolean>(
+    !initialConsultations || initialConsultations.length === 0,
+  )
+
+  // Consultations list from DB or initial SSR prop (never show dummy mockups with prices during loading)
   const [consultationsList, setConsultationsList] = React.useState<
     (ConsultationType & { priceEGP?: number; priceUSD?: number })[]
-  >(fallbackConsultations)
+  >(initialConsultations && initialConsultations.length > 0 ? initialConsultations : [])
 
   // Helper to find most booked consultation (by isMostBooked flag or fallback highest price)
   const getMostWanted = (
@@ -56,11 +68,13 @@ export function BookingFlow({
   const [selectedConsultation, setSelectedConsultation] =
     React.useState<(ConsultationType & { priceEGP?: number; priceUSD?: number; isMostBooked?: boolean }) | null>(
       () => {
+        const sourceList = initialConsultations && initialConsultations.length > 0 ? initialConsultations : []
+        if (sourceList.length === 0) return null
         if (initialConsultationParam) {
-          const found = fallbackConsultations.find((c) => c.id === initialConsultationParam)
+          const found = sourceList.find((c) => c.id === initialConsultationParam)
           if (found) return found
         }
-        return getMostWanted(fallbackConsultations, 'EGP')
+        return getMostWanted(sourceList, initialCurrency)
       },
     )
 
@@ -72,7 +86,7 @@ export function BookingFlow({
     email: '',
     phone: '',
     whatsapp: '',
-    country: 'EG',
+    country: initialCountry,
     notes: '',
   })
 
@@ -175,6 +189,7 @@ export function BookingFlow({
             priceUSD: c.priceUSD,
           }))
           setConsultationsList(mapped)
+          setLoadingConsultations(false)
 
           // If consultation was specified via URL param, use it; otherwise default to Most Wanted (highest price)
           if (initialConsultationParam) {
@@ -185,13 +200,20 @@ export function BookingFlow({
             }
           }
 
-          const mostWanted = getMostWanted(mapped, currency)
-          if (mostWanted) {
-            setSelectedConsultation(mostWanted)
-          }
+          setSelectedConsultation((prev) => {
+            if (prev) {
+              const matched = mapped.find((item: any) => item.id === prev.id)
+              if (matched) return matched
+            }
+            return getMostWanted(mapped, currency)
+          })
+        } else {
+          setLoadingConsultations(false)
         }
       })
-      .catch(() => { })
+      .catch(() => {
+        setLoadingConsultations(false)
+      })
   }, [currency, initialConsultationParam])
 
   const stepsLabels = [
@@ -422,6 +444,7 @@ export function BookingFlow({
             currency={currency}
             selectedId={selectedConsultation?.id ?? null}
             onSelect={handleSelectConsultation}
+            isLoading={loadingConsultations}
           />
         )}
 
@@ -516,8 +539,9 @@ export function BookingFlow({
 
             <button
               type="button"
+              disabled={currentStep === 1 && (loadingConsultations || !selectedConsultation)}
               onClick={handleNext}
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-primary px-8 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:bg-primary/90 hover:shadow-md active:translate-y-px"
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-primary px-8 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:bg-primary/90 hover:shadow-md active:translate-y-px disabled:pointer-events-none disabled:opacity-40"
             >
               <span>{currentStep === 4 ? dict.common.continue : dict.common.next}</span>
               <NextIcon className="size-4" />

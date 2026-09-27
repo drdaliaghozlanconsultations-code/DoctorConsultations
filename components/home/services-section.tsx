@@ -5,6 +5,7 @@ import { getConsultationsCollection } from '@/lib/db'
 import { ServiceCard } from '@/components/service-card'
 import { CtaLink } from '@/components/cta-link'
 import { Reveal } from '@/components/reveal'
+import { getVisitorGeo } from '@/lib/geo'
 
 export async function ServicesSection({
   locale,
@@ -15,6 +16,7 @@ export async function ServicesSection({
   dict: Dictionary
   showAll?: boolean
 }) {
+  const { currency } = await getVisitorGeo()
   let list: ServiceItem[] = services
 
   try {
@@ -25,15 +27,23 @@ export async function ServicesSection({
       .toArray()
 
     if (docs && docs.length > 0) {
-      list = docs.map((d, index) => ({
-        id: d._id?.toString() || `consult-${index}`,
-        icon: 'Stethoscope',
-        name: d.title,
-        description: d.description,
-        durationMinutes: d.durationMinutes,
-        isMostBooked: d.isMostBooked,
-        startingPrice: d.priceEGP,
-      }))
+      list = docs.map((d, index) => {
+        const startingPrice =
+          currency === 'USD'
+            ? (d.priceUSD !== undefined && d.priceUSD > 0 ? d.priceUSD : 60)
+            : (d.priceEGP !== undefined && d.priceEGP > 0 ? d.priceEGP : 1500)
+        return {
+          id: d._id?.toString() || `consult-${index}`,
+          icon: 'Stethoscope',
+          name: d.title,
+          description: d.description,
+          durationMinutes: d.durationMinutes,
+          isMostBooked: d.isMostBooked,
+          startingPrice,
+          priceUSD: d.priceUSD,
+          priceEGP: d.priceEGP,
+        }
+      })
     }
   } catch (error) {
     console.error('Failed to fetch consultations for services section:', error)
@@ -70,6 +80,7 @@ export async function ServicesSection({
               service={service}
               locale={locale}
               dict={dict}
+              currency={currency}
               isMostWanted={
                 hasExplicitMostBooked
                   ? Boolean(service.isMostBooked)

@@ -15,6 +15,7 @@ interface StepConsultationProps {
   currency: 'EGP' | 'USD'
   selectedId: string | null
   onSelect: (consultation: ConsultationType) => void
+  isLoading?: boolean
 }
 
 export function StepConsultation({
@@ -24,8 +25,62 @@ export function StepConsultation({
   currency = 'EGP',
   selectedId,
   onSelect,
+  isLoading = false,
 }: StepConsultationProps) {
   const d = dict.booking.consultation
+
+  // When loading or when no consultations have loaded yet, render clean data-free skeletons
+  if (isLoading || consultationsList.length === 0) {
+    return (
+      <div>
+        <div className="text-center sm:text-start">
+          <h2 className="font-serif text-2xl font-semibold text-foreground sm:text-3xl">
+            {d.title}
+          </h2>
+          <p className="mt-2 text-sm text-muted-foreground sm:text-base">
+            {d.subtitle}
+          </p>
+        </div>
+
+        <div className="mt-8 grid gap-6 sm:grid-cols-2">
+          {[1, 2].map((idx) => (
+            <div
+              key={idx}
+              className="relative flex flex-col justify-between rounded-3xl border border-border/70 bg-card p-7 shadow-xs animate-pulse"
+              aria-hidden="true"
+            >
+              <div>
+                {/* Duration & checkmark skeleton */}
+                <div className="flex items-center justify-between">
+                  <div className="h-6 w-24 rounded-full bg-muted/80" />
+                  <div className="size-7 rounded-full bg-muted/60" />
+                </div>
+
+                {/* Title skeleton */}
+                <div className="mt-5 h-7 w-3/4 rounded-xl bg-muted/80" />
+
+                {/* Description lines skeleton - NO TEXT, NO DATA */}
+                <div className="mt-3 space-y-2">
+                  <div className="h-3.5 w-full rounded-md bg-muted/60" />
+                  <div className="h-3.5 w-5/6 rounded-md bg-muted/60" />
+                  <div className="h-3.5 w-2/3 rounded-md bg-muted/60" />
+                </div>
+              </div>
+
+              {/* Bottom: No prices, no numbers, no data - pure neutral placeholders */}
+              <div className="mt-8 flex items-end justify-between border-t border-border/80 pt-5">
+                <div className="space-y-1.5">
+                  <div className="h-3 w-10 rounded bg-muted/50" />
+                  <div className="h-7 w-20 rounded-lg bg-muted/70" />
+                </div>
+                <div className="h-8 w-20 rounded-full bg-muted/70" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
 
   // Check if any consultation is explicitly marked as "Most Booked"
   const hasExplicitMostBooked = consultationsList.some((item) => item.isMostBooked)
