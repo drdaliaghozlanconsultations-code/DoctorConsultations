@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic'
 /**
  * GET /api/payments/expire
  *
- * Vercel Cron Job — runs every 30 minutes (configured in vercel.json).
+ * Vercel Cron Job — runs once a day (configured in vercel.json).
  * Marks card payment bookings that have been in "awaiting_payment"
  * status for more than 1 hour as "failed".
  *
