@@ -92,10 +92,9 @@ export async function POST(request: Request) {
         reference,
         sessionId || transactionId || booking.kashierSessionId,
       )
-    } else if (
-      ['FAILED', 'EXPIRED', 'ABANDONED', 'DECLINED', 'REJECTED'].includes(eventData.status?.toUpperCase()) ||
-      ['FAILED', 'EXPIRED', 'ABANDONED', 'DECLINED', 'REJECTED'].includes(eventData.paymentStatus?.toUpperCase())
-    ) {
+    } else {
+      // If payment was not successful (failed, rejected, expired, cancelled, abandoned, etc.),
+      // mark booking as failed immediately so the time slot is freed for other customers.
       await bookingsCollection.updateOne(
         { reference },
         {

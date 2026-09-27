@@ -167,6 +167,47 @@ export async function getSlotsForDate(
       })
       .toArray()
 
+    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000)
+
+    // Filter out abandoned card bookings where the 30-min payment session has expired
+    const validBookings = activeBookings.filter((b) => {
+      if (b.status === 'confirmed') return true
+      if (b.paymentMethod === 'instapay') return true // InstaPay waits for admin receipt approval
+      if (b.paymentMethod === 'card') {
+        const createdAt = b.createdAt ? new Date(b.createdAt) : null
+        if (!createdAt || createdAt < thirtyMinutesAgo) {
+          return false // Expired card session: free the slot
+        }
+      }
+      return true
+    })
+
+    // Asynchronously mark stale card bookings as failed in DB
+    const staleCardRefs = activeBookings
+      .filter(
+        (b) =>
+          b.paymentMethod === 'card' &&
+          b.status === 'pending' &&
+          b.createdAt &&
+          new Date(b.createdAt) < thirtyMinutesAgo,
+      )
+      .map((b) => b.reference)
+
+    if (staleCardRefs.length > 0) {
+      bookingsCol
+        .updateMany(
+          { reference: { $in: staleCardRefs } },
+          {
+            $set: {
+              status: 'failed',
+              paymentStatus: 'failed',
+              updatedAt: new Date(),
+            },
+          },
+        )
+        .catch(() => {})
+    }
+
     // Pre-fetch consultation info (duration + breakAfter) cache
     interface ConsultCacheInfo {
       duration: number
@@ -174,7 +215,7 @@ export async function getSlotsForDate(
     }
     const consultCache: Record<string, ConsultCacheInfo> = {}
 
-    for (const b of activeBookings) {
+    for (const b of validBookings) {
       let bDuration = 30 // default
       let bBreakAfter = 0 // default
 

@@ -143,8 +143,17 @@ async function handleReturn(request: NextRequest) {
   const now = new Date()
 
   const rawStatus = (paymentStatus || '').toUpperCase()
-  const isSuccess = ['SUCCESS', 'APPROVED', 'PAID'].includes(rawStatus)
-  const isFailed = ['FAILED', 'DECLINED', 'REJECTED', 'EXPIRED', 'ABANDONED', 'CANCELLED'].includes(rawStatus)
+  let isSuccess = ['SUCCESS', 'APPROVED', 'PAID'].includes(rawStatus)
+
+  // If status is not explicitly successful, verify with Kashier API to be sure
+  if (!isSuccess && activeSessionId) {
+    try {
+      const sessionDetails = await getPaymentSession(activeSessionId)
+      isSuccess = isPaymentSuccessful(sessionDetails)
+    } catch (err) {
+      console.warn('[Kashier Return] Could not verify session status from API:', err)
+    }
+  }
 
   if (isSuccess) {
     // 1. Confirm booking and create calendar event + Meet link
@@ -179,8 +188,27 @@ async function handleReturn(request: NextRequest) {
     )
     booking.paymentStatus = 'verified'
     booking.status = 'confirmed'
-  } else if (isFailed) {
-    // 1. Mark booking as failed
+  } else if (booking.paymentStatus === 'verified') {
+    // If already verified (e.g. by webhook) but calendar event wasn't created yet
+    if (!booking.googleCalendarEventId) {
+      try {
+        const { confirmBookingAndCreateCalendar } = await import(
+          '@/lib/google-calendar'
+        )
+        const updated = await confirmBookingAndCreateCalendar(
+          booking.reference,
+          activeSessionId,
+        )
+        if (updated) {
+          booking = updated
+        }
+      } catch (e) {
+        console.error('[Kashier Return] Error creating calendar event:', e)
+      }
+    }
+  } else {
+    // 1. Any non-successful return (failed, declined, cancelled, pending, abandoned)
+    // is marked as failed immediately so the time slot is freed for other patients.
     await bookingsCollection.updateOne(
       { _id: booking._id },
       {
@@ -207,25 +235,6 @@ async function handleReturn(request: NextRequest) {
         },
       },
     )
-  } else if (
-    booking.paymentStatus === 'verified' &&
-    !booking.googleCalendarEventId
-  ) {
-    // If already verified but calendar event wasn't created yet
-    try {
-      const { confirmBookingAndCreateCalendar } = await import(
-        '@/lib/google-calendar'
-      )
-      const updated = await confirmBookingAndCreateCalendar(
-        booking.reference,
-        activeSessionId,
-      )
-      if (updated) {
-        booking = updated
-      }
-    } catch (e) {
-      console.error('[Kashier Return] Error creating calendar event:', e)
-    }
   }
 
   const finalStatus =

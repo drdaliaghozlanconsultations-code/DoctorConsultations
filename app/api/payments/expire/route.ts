@@ -26,17 +26,17 @@ export async function GET(request: NextRequest) {
     }
   }
   try {
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000)
+    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000)
 
     const bookingsCollection = await getBookingsCollection()
     const paymentProcessesCollection = await getPaymentProcessesCollection()
 
-    // Find bookings with card payment that are still awaiting_payment after 1 hour
+    // Find bookings with card payment that are still awaiting_payment after 30 minutes
     const staleBookings = await bookingsCollection
       .find({
         paymentMethod: 'card',
         paymentStatus: 'awaiting_payment',
-        createdAt: { $lt: oneHourAgo },
+        createdAt: { $lt: thirtyMinutesAgo },
       })
       .toArray()
 
