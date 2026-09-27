@@ -177,8 +177,8 @@ export function StepPayment({
                   onClick={() => setPaymentMethod('instapay')}
                   onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setPaymentMethod('instapay')}
                   className={`flex items-center gap-3 p-4 rounded-2xl border cursor-pointer transition-all ${paymentMethod === 'instapay'
-                      ? 'border-primary bg-primary/10 ring-2 ring-primary/20 shadow-xs'
-                      : 'border-border bg-card hover:border-primary/40'
+                    ? 'border-primary bg-primary/10 ring-2 ring-primary/20 shadow-xs'
+                    : 'border-border bg-card hover:border-primary/40'
                     }`}
                 >
                   <div className={`size-9 rounded-xl flex items-center justify-center font-bold text-xs ${paymentMethod === 'instapay' ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'
@@ -203,8 +203,8 @@ export function StepPayment({
                 onClick={() => setPaymentMethod('card')}
                 onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setPaymentMethod('card')}
                 className={`flex items-center gap-3 p-4 rounded-2xl border cursor-pointer transition-all ${paymentMethod === 'card'
-                    ? 'border-primary bg-primary/10 ring-2 ring-primary/20 shadow-xs'
-                    : 'border-border bg-card hover:border-primary/40'
+                  ? 'border-primary bg-primary/10 ring-2 ring-primary/20 shadow-xs'
+                  : 'border-border bg-card hover:border-primary/40'
                   }`}
               >
                 <div className={`size-9 rounded-xl flex items-center justify-center ${paymentMethod === 'card' ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'
@@ -212,6 +212,7 @@ export function StepPayment({
                   <CreditCard className="size-5" />
                 </div>
                 <div>
+
                   <p className="text-sm font-bold text-foreground">
                     {isArabic ? 'بطاقة بنكية / Apple Pay' : 'Credit / Debit Card / Apple Pay'}
                   </p>
