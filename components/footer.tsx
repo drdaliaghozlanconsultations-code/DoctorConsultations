@@ -287,9 +287,38 @@ export function Footer({ locale, dict }: { locale: Locale; dict: Dictionary }) {
         </div>
 
         <div className="mt-6 flex flex-col gap-4 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-xs text-muted-foreground">
-            &copy; {year} {dict.meta.siteName}. {dict.footer.rights}
-          </p>
+          <div className="space-y-1">
+            <p className="text-xs text-muted-foreground">
+              &copy; {year} {dict.meta.siteName}. {dict.footer.rights}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {locale === 'ar' ? (
+                <>
+                  تم تطوير هذا الموقع بشغف بواسطة{' '}
+                  <a
+                    href="https://www.instagram.com/omar.eldesouky95/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-medium text-foreground underline underline-offset-4 decoration-border transition-colors hover:text-primary hover:decoration-primary"
+                  >
+                    مهندس البرمجيات / عمر الدسوقي
+                  </a>
+                </>
+              ) : (
+                <>
+                  This website is developed with passion by{' '}
+                  <a
+                    href="https://www.instagram.com/omar.eldesouky95/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-medium text-foreground underline underline-offset-4 decoration-border transition-colors hover:text-primary hover:decoration-primary"
+                  >
+                    Software Engineer / Omar Eldesouky
+                  </a>
+                </>
+              )}
+            </p>
+          </div>
           <LanguageSwitcher locale={locale} label={dict.nav.language} />
         </div>
         {/* <p className="mt-4 text-xs leading-relaxed text-muted-foreground/70">
