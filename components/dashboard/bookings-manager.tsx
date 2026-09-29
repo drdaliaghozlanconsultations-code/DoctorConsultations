@@ -23,6 +23,7 @@ import {
   ExternalLink,
   RefreshCw,
   Video,
+  ArrowRightLeft,
 } from 'lucide-react'
 import type { BookingItem, ConsultationItem, UserRole, BookingStatus } from '@/lib/db'
 
@@ -506,6 +507,25 @@ export function BookingsManager({ initialBookings, initialTotalCount, initialTot
                       <div className="font-bold text-foreground">
                         {b.amount ? `${b.amount.toLocaleString()} ${b.currency}` : '—'}
                       </div>
+                      {b.originalAmount && b.originalCurrency && b.originalCurrency !== b.currency ? (
+                        <div className="mt-1 flex flex-col gap-0.5">
+                          <span
+                            className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-700 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-md w-fit"
+                            title={`Originally charged ${b.originalAmount} ${b.originalCurrency}`}
+                          >
+                            <ArrowRightLeft className="size-2.5 shrink-0" />
+                            <span>{b.originalAmount.toLocaleString()} {b.originalCurrency}</span>
+                          </span>
+                          {b.exchangeRate && (
+                            <span
+                              className="text-[10px] text-muted-foreground font-mono pl-0.5"
+                              title={`Conversion Rate: 1 ${b.originalCurrency} = ${b.exchangeRate.toFixed(2)} EGP`}
+                            >
+                              1 {b.originalCurrency} = {b.exchangeRate.toFixed(2)} EGP
+                            </span>
+                          )}
+                        </div>
+                      ) : null}
                       <span className="inline-block text-[10px] uppercase font-semibold bg-secondary/80 px-2 py-0.5 rounded-md text-secondary-foreground mt-1">
                         {b.paymentMethod || 'InstaPay'}
                       </span>
@@ -757,6 +777,66 @@ export function BookingsManager({ initialBookings, initialTotalCount, initialTot
                   {editError}
                 </div>
               )}
+
+              {/* Payment & Conversion Info Card */}
+              <div className="rounded-2xl border border-border bg-muted/40 p-4 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Payment & Billing Details
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="inline-block text-[10px] uppercase font-semibold bg-secondary px-2 py-0.5 rounded-md text-secondary-foreground">
+                      {editingBooking.paymentMethod || 'InstaPay'}
+                    </span>
+                    <span
+                      className={`inline-block text-[10px] uppercase font-semibold px-2 py-0.5 rounded-md ${
+                        editingBooking.paymentStatus === 'verified'
+                          ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
+                          : editingBooking.paymentStatus === 'failed' || editingBooking.paymentStatus === 'rejected'
+                          ? 'bg-rose-500/10 text-rose-600 border border-rose-500/20'
+                          : 'bg-amber-500/10 text-amber-600 border border-amber-500/20'
+                      }`}
+                    >
+                      {editingBooking.paymentStatus}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-baseline justify-between pt-1">
+                  <div>
+                    <span className="text-base font-bold text-foreground">
+                      {editingBooking.amount ? `${editingBooking.amount.toLocaleString()} ${editingBooking.currency}` : '—'}
+                    </span>
+                    <span className="text-xs text-muted-foreground ml-1.5">
+                      (Billed Amount)
+                    </span>
+                  </div>
+                  {editingBooking.originalAmount && editingBooking.originalCurrency && editingBooking.originalCurrency !== editingBooking.currency && (
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md">
+                      <ArrowRightLeft className="size-3" />
+                      Original: {editingBooking.originalAmount.toLocaleString()} {editingBooking.originalCurrency}
+                    </span>
+                  )}
+                </div>
+
+                {editingBooking.exchangeRate && (
+                  <div className="text-xs text-muted-foreground flex items-center justify-between border-t border-border/60 pt-2">
+                    <span>Kashier Exchange Rate:</span>
+                    <span className="font-mono font-medium text-foreground">
+                      1 {editingBooking.originalCurrency || 'USD'} = {editingBooking.exchangeRate.toFixed(4)} EGP
+                    </span>
+                  </div>
+                )}
+
+                {editingBooking.kashierSessionId && (
+                  <div className="text-[11px] text-muted-foreground flex items-center justify-between border-t border-border/60 pt-1.5 font-mono">
+                    <span>Kashier Session ID:</span>
+                    <span className="text-foreground/80 truncate max-w-[220px]" title={editingBooking.kashierSessionId}>
+                      {editingBooking.kashierSessionId}
+                    </span>
+                  </div>
+                )}
+              </div>
 
               {/* Reschedule Date & Time */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-muted/30 p-4 rounded-2xl border border-border">

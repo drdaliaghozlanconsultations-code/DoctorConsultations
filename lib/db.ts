@@ -54,6 +54,12 @@ export interface BookingDoc {
   paymentMethod: PaymentMethod
   amount: number
   currency: 'EGP' | 'USD'
+  /** Original amount before currency conversion (if converted from another currency) */
+  originalAmount?: number
+  /** Original currency before conversion (e.g. 'USD') */
+  originalCurrency?: string
+  /** Exchange rate used for conversion */
+  exchangeRate?: number
   paymentReceiptUrl?: string
   paymentReceiptPublicId?: string
   paymentStatus: PaymentStatus
@@ -90,6 +96,12 @@ export interface PaymentProcessDoc {
   method: PaymentMethod
   amount: number
   currency: 'EGP' | 'USD'
+  /** Original amount before currency conversion (if converted) */
+  originalAmount?: number
+  /** Original currency before conversion (e.g. 'USD') */
+  originalCurrency?: string
+  /** Exchange rate used for conversion */
+  exchangeRate?: number
   receiptUrl?: string
   receiptPublicId?: string
   kashierSessionId?: string

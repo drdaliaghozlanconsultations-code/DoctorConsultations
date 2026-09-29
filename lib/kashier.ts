@@ -79,6 +79,87 @@ function getMerchantId(): string {
   return mid.trim()
 }
 
+// ---------------------------------------------------------------------------
+// Exchange Rate — Kashier's public, unauthenticated rate lookup
+// GET /v3/payment/exchange-rate?from=USD&to=EGP
+// Docs: https://developers.kashier.io/docs/accept-payments/currency-conversion
+// ---------------------------------------------------------------------------
+
+export interface ExchangeRateResponse {
+  success: boolean
+  timestamp: number
+  base: string
+  date: string
+  rates: Record<string, number>
+}
+
+/** Simple in-memory cache so we don't hit the rate endpoint on every request. */
+let _rateCache: { rate: number; fetchedAt: number } | null = null
+const RATE_CACHE_TTL_MS = 15 * 60 * 1000 // 15 minutes
+
+/**
+ * Fetch the live exchange rate from Kashier.
+ * Public endpoint — no API key / secret required.
+ *
+ * @param from  Source currency (default `USD`)
+ * @param to    Target currency (default `EGP`)
+ * @returns     The exchange rate (multiply `from` amount by this to get `to` amount)
+ */
+export async function getExchangeRate(
+  from = 'USD',
+  to = 'EGP',
+): Promise<number> {
+  // Return cached rate if still fresh
+  if (
+    _rateCache &&
+    from === 'USD' &&
+    to === 'EGP' &&
+    Date.now() - _rateCache.fetchedAt < RATE_CACHE_TTL_MS
+  ) {
+    return _rateCache.rate
+  }
+
+  const baseUrl = getBaseUrl()
+  const url = `${baseUrl}/v3/payment/exchange-rate?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`
+
+  const response = await fetch(url, { method: 'GET' })
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    console.error('Kashier exchange-rate lookup failed:', response.status, errorText)
+    throw new Error(`Exchange rate lookup failed: ${response.status}`)
+  }
+
+  const data = (await response.json()) as ExchangeRateResponse
+
+  if (!data.success || !data.rates?.[to]) {
+    console.error('Kashier exchange-rate unexpected response:', data)
+    throw new Error(`Exchange rate not available for ${from} → ${to}`)
+  }
+
+  const rate = data.rates[to]
+
+  // Cache USD→EGP
+  if (from === 'USD' && to === 'EGP') {
+    _rateCache = { rate, fetchedAt: Date.now() }
+  }
+
+  return rate
+}
+
+/**
+ * Convert a USD amount to EGP using Kashier's live exchange rate.
+ * Returns the EGP amount rounded to 2 decimal places.
+ */
+export async function convertToEGP(usdAmount: number): Promise<{
+  egpAmount: number
+  rate: number
+}> {
+  const rate = await getExchangeRate('USD', 'EGP')
+  const egpAmount = Math.round(usdAmount * rate * 100) / 100 // round to 2 decimals
+  return { egpAmount, rate }
+}
+
 /**
  * Create a Kashier Payment Session (Hosted Checkout).
  * Returns the session object containing sessionUrl to redirect the user.

@@ -21,6 +21,7 @@ import {
   Phone,
   MessageSquare,
   ExternalLink,
+  ArrowRightLeft,
 } from 'lucide-react'
 import type { BookingItem, UserRole } from '@/lib/db'
 
@@ -325,9 +326,30 @@ export function DashboardOverview({ initialStats, user }: DashboardOverviewProps
                           {b.reference}
                         </span>
                       </div>
-                      <p className="text-xs text-primary font-medium">
-                        {b.consultationTitle?.en || 'Consultation Session'}
-                      </p>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-primary font-medium">
+                          {b.consultationTitle?.en || 'Consultation Session'}
+                        </span>
+                        {b.amount ? (
+                          <span className="font-semibold text-foreground">
+                            {b.amount.toLocaleString()} {b.currency}
+                          </span>
+                        ) : null}
+                      </div>
+                      {b.originalAmount && b.originalCurrency && b.originalCurrency !== b.currency && (
+                        <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-0.5">
+                          <span className="text-muted-foreground/80">Original USD:</span>
+                          <span className="text-amber-700 dark:text-amber-400 font-medium inline-flex items-center gap-1">
+                            <ArrowRightLeft className="size-2.5 shrink-0" />
+                            <span>{b.originalAmount.toLocaleString()} {b.originalCurrency}</span>
+                            {b.exchangeRate && (
+                              <span className="text-[10px] text-muted-foreground font-mono">
+                                (@ {b.exchangeRate.toFixed(2)})
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                      )}
 
                       {/* Contact Info */}
                       <div className="pt-2 text-xs text-muted-foreground space-y-1">
@@ -470,8 +492,19 @@ export function DashboardOverview({ initialStats, user }: DashboardOverviewProps
                         {b.consultationTitle?.en || 'Consultation'}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        {b.amount ? `${b.amount} ${b.currency}` : 'Unspecified'}
+                        {b.amount ? `${b.amount.toLocaleString()} ${b.currency}` : 'Unspecified'}
                       </div>
+                      {b.originalAmount && b.originalCurrency && b.originalCurrency !== b.currency && (
+                        <div className="text-[11px] text-amber-700 dark:text-amber-400 font-medium flex items-center gap-1 mt-0.5">
+                          <ArrowRightLeft className="size-2.5 shrink-0" />
+                          <span>{b.originalAmount.toLocaleString()} {b.originalCurrency}</span>
+                          {b.exchangeRate && (
+                            <span className="text-[10px] text-muted-foreground font-mono">
+                              (@ {b.exchangeRate.toFixed(2)})
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </td>
                     <td className="py-4">
                       <div className="text-sm text-foreground font-medium">{b.date}</div>

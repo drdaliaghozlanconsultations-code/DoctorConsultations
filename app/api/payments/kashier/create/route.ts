@@ -5,7 +5,7 @@ import {
   getConsultationsCollection,
   type BookingDoc,
 } from '@/lib/db'
-import { createPaymentSession } from '@/lib/kashier'
+import { createPaymentSession, convertToEGP } from '@/lib/kashier'
 import { ObjectId } from 'mongodb'
 
 export const dynamic = 'force-dynamic'
@@ -16,6 +16,10 @@ export const dynamic = 'force-dynamic'
  * Creates a pending booking in MongoDB and initiates a Kashier
  * Payment Session (hosted checkout). Returns the sessionUrl so the
  * client can redirect the patient to Kashier.
+ *
+ * All payments are sent to Kashier in EGP. If the client sends a USD
+ * amount, we convert it server-side using Kashier's own exchange-rate
+ * API before creating the session.
  */
 export async function POST(request: Request) {
   try {
@@ -47,6 +51,27 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { success: false, error: 'Invalid payment amount' },
         { status: 400 },
+      )
+    }
+
+    // ---------------------------------------------------------------
+    // Convert to EGP — Kashier must always receive EGP
+    // ---------------------------------------------------------------
+    const incomingCurrency = currency?.toUpperCase() || 'USD'
+    let chargeAmountEGP: number
+    let exchangeRate: number | null = null
+    const originalAmount = Number(amount)
+
+    if (incomingCurrency === 'EGP') {
+      // Already in EGP — use as-is
+      chargeAmountEGP = originalAmount
+    } else {
+      // Convert USD (or other currencies in the future) to EGP
+      const { egpAmount, rate } = await convertToEGP(originalAmount)
+      chargeAmountEGP = egpAmount
+      exchangeRate = rate
+      console.log(
+        `Currency conversion: ${originalAmount} ${incomingCurrency} → ${chargeAmountEGP} EGP (rate: ${rate})`,
       )
     }
 
@@ -85,8 +110,14 @@ export async function POST(request: Request) {
       notes: notes?.trim() || '',
       status: 'pending',
       paymentMethod: 'card',
-      amount: Number(amount),
-      currency: (currency?.toUpperCase() === 'EGP' ? 'EGP' : 'USD') as 'EGP' | 'USD',
+      amount: chargeAmountEGP,
+      currency: 'EGP' as const,
+      // Store original currency info for audit / reconciliation
+      ...(exchangeRate != null && {
+        originalAmount,
+        originalCurrency: incomingCurrency,
+        exchangeRate,
+      }),
       paymentStatus: 'awaiting_payment',
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -100,8 +131,13 @@ export async function POST(request: Request) {
       bookingId: insertResult.insertedId.toString(),
       bookingReference: reference,
       method: 'card',
-      amount: Number(amount),
-      currency: newBooking.currency,
+      amount: chargeAmountEGP,
+      currency: 'EGP',
+      ...(exchangeRate != null && {
+        originalAmount,
+        originalCurrency: incomingCurrency,
+        exchangeRate,
+      }),
       status: 'awaiting_payment',
       createdAt: new Date(),
     })
@@ -123,8 +159,8 @@ export async function POST(request: Request) {
     // 4. Create Kashier payment session
     const sessionResponse = await createPaymentSession({
       order: reference,
-      amount: Number(amount),
-      currency: newBooking.currency,
+      amount: chargeAmountEGP,
+      currency: 'EGP',
       merchantRedirect,
       customer: {
         reference: email.trim(),
