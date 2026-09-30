@@ -362,8 +362,22 @@ export function isGenericFailureMessage(msg?: string | null): boolean {
 }
 
 /**
+ * Normalize lifecycle failure messages into standard keywords:
+ * 'EXPIRED' | 'CANCELLED' | 'ABANDONED' | null
+ */
+export function normalizeLifecycleReason(msg?: string | null): string | null {
+  if (!msg) return null
+  const upper = msg.trim().toUpperCase()
+  if (upper.includes('EXPIRE')) return 'EXPIRED'
+  if (upper.includes('CANCEL')) return 'CANCELLED'
+  if (upper.includes('ABANDON')) return 'ABANDONED'
+  return null
+}
+
+/**
  * Resolve the most informative failure reason, preventing generic late webhook
- * statuses (like 'FAILED' or 'EXPIRED') from overwriting detailed decline reasons.
+ * statuses (like 'FAILED' or 'EXPIRED') from overwriting detailed decline reasons,
+ * and ensuring specific lifecycle events like 'EXPIRED' are preserved over plain 'FAILED'.
  */
 export function resolveFailureReason(
   incomingReason?: string | null,
@@ -372,15 +386,29 @@ export function resolveFailureReason(
   const hasExisting = !isGenericFailureMessage(existingReason)
   const hasIncoming = !isGenericFailureMessage(incomingReason)
 
-  // If we already have a detailed reason and the incoming message is generic (e.g. late webhook 'FAILED'), keep existing
+  // 1. If we already have a detailed bank/gateway reason (e.g. 'Insufficient funds'), keep it
   if (hasExisting && !hasIncoming) {
     return existingReason!.trim()
   }
-  // If incoming has a specific reason, use it
+  // 2. If incoming has a specific bank/gateway reason, use it
   if (hasIncoming) {
     return incomingReason!.trim()
   }
-  // If both are generic or empty, use whichever is present or fallback to 'FAILED'
+
+  // 3. Both are generic / lifecycle messages.
+  // Prefer specific lifecycle reasons ('EXPIRED', 'CANCELLED', 'ABANDONED') over plain 'FAILED'
+  const incomingLifecycle = normalizeLifecycleReason(incomingReason)
+  if (incomingLifecycle) {
+    return incomingLifecycle
+  }
+
+  const existingLifecycle = normalizeLifecycleReason(existingReason)
+  if (existingLifecycle) {
+    return existingLifecycle
+  }
+
+  // 4. Default fallback
   return incomingReason?.trim() || existingReason?.trim() || 'FAILED'
 }
+
 

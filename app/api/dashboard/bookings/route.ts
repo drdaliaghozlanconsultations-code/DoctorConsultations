@@ -142,7 +142,7 @@ export async function POST(request: Request) {
           consultationTitle = c.title
           if (c.durationMinutes) durationMinutes = c.durationMinutes
         }
-      } catch {}
+      } catch { }
     }
 
     const reference = `DR.DALIA-${Math.floor(100000 + Math.random() * 900000)}`
@@ -296,7 +296,7 @@ export async function PATCH(request: Request) {
         if (consultation?.durationMinutes) {
           durationMinutes = consultation.durationMinutes
         }
-      } catch {}
+      } catch { }
     }
 
     const consultTitle = existingBooking.consultationTitle?.en || 'Medical Consultation'

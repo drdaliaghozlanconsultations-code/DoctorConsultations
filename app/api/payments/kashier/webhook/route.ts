@@ -32,7 +32,8 @@ export async function POST(request: Request) {
       eventData.order ||
       eventData.merchantOrderId ||
       eventData.orderId ||
-      payload.order
+      payload.order ||
+      payload.merchantOrderId
 
     const sessionId =
       eventData.sessionId ||
@@ -67,14 +68,30 @@ export async function POST(request: Request) {
       return NextResponse.json({ received: true, note: 'booking_not_found' }, { status: 200 })
     }
 
-    // Determine success
-    let success = isPaymentSuccessful(eventData)
+    const eventName = String(payload.event || eventData.event || '').toLowerCase()
+    const isExplicitExpiry = eventName.includes('expire')
+    const isExplicitCancel = eventName.includes('cancel')
+    const isExplicitAbandon = eventName.includes('abandon')
 
-    // If indeterminate and we have a sessionId, query session directly from Kashier
-    if (!success && (sessionId || booking.kashierSessionId)) {
+    // Determine success
+    let success =
+      !isExplicitExpiry &&
+      !isExplicitCancel &&
+      !isExplicitAbandon &&
+      isPaymentSuccessful(eventData)
+
+    let queriedSession: any = null
+    // If indeterminate and not an explicit terminal event (like session_expired), query session directly from Kashier
+    if (
+      !success &&
+      !isExplicitExpiry &&
+      !isExplicitCancel &&
+      !isExplicitAbandon &&
+      (sessionId || booking.kashierSessionId)
+    ) {
       try {
-        const sessionDetails = await getPaymentSession(sessionId || booking.kashierSessionId)
-        success = isPaymentSuccessful(sessionDetails)
+        queriedSession = await getPaymentSession(sessionId || booking.kashierSessionId)
+        success = isPaymentSuccessful(queriedSession)
       } catch (err) {
         console.warn('[Kashier Webhook] Query session fallback error:', err)
       }
@@ -83,12 +100,27 @@ export async function POST(request: Request) {
     const now = new Date()
     const reference = booking.reference
 
+    let eventReason: string | null = null
+    if (isExplicitExpiry) {
+      eventReason = 'EXPIRED'
+    } else if (isExplicitCancel) {
+      eventReason = 'CANCELLED'
+    } else if (isExplicitAbandon) {
+      eventReason = 'ABANDONED'
+    }
+
     const incomingFailureMsg =
       eventData.failureReason ||
       eventData.declinedReason ||
+      queriedSession?.failureReason ||
+      queriedSession?.declinedReason ||
+      eventReason ||
       eventData.message ||
       eventData.status ||
       eventData.paymentStatus ||
+      queriedSession?.status ||
+      queriedSession?.paymentStatus ||
+      (payload.status ? String(payload.status) : null) ||
       'FAILED'
 
     if (success) {
@@ -145,7 +177,11 @@ export async function POST(request: Request) {
       { bookingReference: reference },
       {
         $set: {
-          ...(sessionId ? { kashierSessionId: sessionId } : {}),
+          ...(sessionId
+            ? { kashierSessionId: sessionId }
+            : booking.kashierSessionId
+            ? { kashierSessionId: booking.kashierSessionId }
+            : {}),
           ...(transactionId ? { kashierTransactionId: transactionId } : {}),
           kashierResponseMessage: success ? (eventData.status || 'SUCCESS') : procFailureMsg,
           ...(booking.paymentStatus === 'verified' ? {} : { status: success ? 'verified' : 'failed' }),

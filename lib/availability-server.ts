@@ -208,7 +208,7 @@ export async function getSlotsForDate(
             },
           },
         )
-        .catch(() => {})
+        .catch(() => { })
 
       getPaymentProcessesCollection()
         .then((col) =>
@@ -223,7 +223,7 @@ export async function getSlotsForDate(
             },
           ),
         )
-        .catch(() => {})
+        .catch(() => { })
     }
 
     // Pre-fetch consultation info (duration + breakAfter) cache
