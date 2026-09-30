@@ -1,11 +1,13 @@
 import dns from "dns";
 import { MongoClient, MongoClientOptions } from "mongodb";
 
-// Ensure Node's DNS resolver can query MongoDB Atlas SRV records even if local ISP/router blocks SRV
-try {
-  dns.setServers(["8.8.8.8", "8.8.4.4", "1.1.1.1"]);
-} catch (e) {
-  // Ignore if not supported in runtime
+// Ensure Node's DNS resolver can query MongoDB Atlas SRV records in development if local ISP blocks SRV
+if (process.env.NODE_ENV === "development") {
+  try {
+    dns.setServers(["8.8.8.8", "8.8.4.4", "1.1.1.1"]);
+  } catch (e) {
+    // Ignore if not supported in runtime
+  }
 }
 
 if (!process.env.MONGODB_URI) {
@@ -13,29 +15,25 @@ if (!process.env.MONGODB_URI) {
 }
 
 const uri = process.env.MONGODB_URI;
-const options: MongoClientOptions = {};
+const options: MongoClientOptions = {
+  maxPoolSize: 10,
+  serverSelectionTimeoutMS: 10000, // Timeout after 10s instead of hanging for 30s
+};
 
 let client: MongoClient;
 let clientPromise: Promise<MongoClient>;
 
-if (process.env.NODE_ENV === "development") {
-  // In development mode, use a global variable so that the value
-  // is preserved across module reloads caused by HMR (Hot Module Replacement).
-  let globalWithMongo = global as typeof globalThis & {
-    _mongoClientPromise?: Promise<MongoClient>;
-  };
+// In serverless environments like Vercel, use a global variable to preserve
+// the connection across warm function invocations and prevent connection exhaustion.
+let globalWithMongo = global as typeof globalThis & {
+  _mongoClientPromise?: Promise<MongoClient>;
+};
 
-  if (!globalWithMongo._mongoClientPromise) {
-    client = new MongoClient(uri, options);
-    globalWithMongo._mongoClientPromise = client.connect();
-  }
-  clientPromise = globalWithMongo._mongoClientPromise;
-} else {
-  // In production mode, it's best to not use a global variable.
+if (!globalWithMongo._mongoClientPromise) {
   client = new MongoClient(uri, options);
-  clientPromise = client.connect();
+  globalWithMongo._mongoClientPromise = client.connect();
 }
+clientPromise = globalWithMongo._mongoClientPromise;
 
-// Export a module-scoped MongoClient promise. By doing this in a
-// separate module, the client can be shared across functions.
+// Export a module-scoped MongoClient promise.
 export default clientPromise;
