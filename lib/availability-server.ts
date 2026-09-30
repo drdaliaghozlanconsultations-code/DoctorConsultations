@@ -3,6 +3,7 @@ import {
   getDateOverridesCollection,
   getBookingsCollection,
   getConsultationsCollection,
+  getPaymentProcessesCollection,
 } from '@/lib/db'
 import {
   type AvailabilitySettings,
@@ -194,16 +195,32 @@ export async function getSlotsForDate(
       .map((b) => b.reference)
 
     if (staleCardRefs.length > 0) {
+      const now = new Date()
       bookingsCol
         .updateMany(
-          { reference: { $in: staleCardRefs } },
+          { reference: { $in: staleCardRefs }, paymentStatus: 'awaiting_payment' },
           {
             $set: {
               status: 'failed',
               paymentStatus: 'failed',
-              updatedAt: new Date(),
+              updatedAt: now,
             },
           },
+        )
+        .catch(() => {})
+
+      getPaymentProcessesCollection()
+        .then((col) =>
+          col.updateMany(
+            { bookingReference: { $in: staleCardRefs }, status: 'awaiting_payment' },
+            {
+              $set: {
+                status: 'failed',
+                kashierResponseMessage: 'EXPIRED',
+                processedAt: now,
+              },
+            },
+          ),
         )
         .catch(() => {})
     }

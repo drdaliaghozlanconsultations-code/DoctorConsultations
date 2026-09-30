@@ -71,6 +71,12 @@ async function handleReturn(request: NextRequest) {
     url.searchParams.get('transactionId') ||
     url.searchParams.get('kashierTxId')
 
+  let failureReason =
+    url.searchParams.get('failureReason') ||
+    url.searchParams.get('declinedReason') ||
+    url.searchParams.get('message') ||
+    url.searchParams.get('error')
+
   // If Kashier returned data via POST body
   if (request.method === 'POST') {
     try {
@@ -100,12 +106,19 @@ async function handleReturn(request: NextRequest) {
           (formData.get('transactionId') as string) ||
           (formData.get('kashierTxId') as string) ||
           transactionId
+
+        failureReason =
+          (formData.get('failureReason') as string) ||
+          (formData.get('declinedReason') as string) ||
+          (formData.get('message') as string) ||
+          failureReason
       } else if (contentType.includes('application/json')) {
         const body = await request.json()
         ref = body.ref || body.order || body.orderId || ref
         sessionId = body.sessionId || body.id || sessionId
         paymentStatus = body.paymentStatus || body.status || paymentStatus
         transactionId = body.transactionId || body.kashierTxId || transactionId
+        failureReason = body.failureReason || body.declinedReason || body.message || failureReason
       }
     } catch (e) {
       console.warn('[Kashier Return] Could not parse POST body:', e)
@@ -118,6 +131,7 @@ async function handleReturn(request: NextRequest) {
     sessionId,
     paymentStatus,
     transactionId,
+    failureReason,
     url: request.url,
   })
 
@@ -150,6 +164,9 @@ async function handleReturn(request: NextRequest) {
     try {
       const sessionDetails = await getPaymentSession(activeSessionId)
       isSuccess = isPaymentSuccessful(sessionDetails)
+      if (!failureReason && (sessionDetails as any).declinedReason) {
+        failureReason = (sessionDetails as any).declinedReason
+      }
     } catch (err) {
       console.warn('[Kashier Return] Could not verify session status from API:', err)
     }
@@ -188,7 +205,7 @@ async function handleReturn(request: NextRequest) {
     )
     booking.paymentStatus = 'verified'
     booking.status = 'confirmed'
-  } else if (booking.paymentStatus === 'verified') {
+  } else if (booking.paymentStatus === 'verified' || booking.status === 'confirmed') {
     // If already verified (e.g. by webhook) but calendar event wasn't created yet
     if (!booking.googleCalendarEventId) {
       try {
@@ -229,7 +246,7 @@ async function handleReturn(request: NextRequest) {
         $set: {
           kashierSessionId: activeSessionId,
           kashierTransactionId: transactionId || '',
-          kashierResponseMessage: paymentStatus || 'FAILED',
+          kashierResponseMessage: failureReason || paymentStatus || 'FAILED',
           status: 'failed',
           processedAt: now,
         },

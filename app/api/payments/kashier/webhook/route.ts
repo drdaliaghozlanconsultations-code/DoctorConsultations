@@ -93,30 +93,40 @@ export async function POST(request: Request) {
         sessionId || transactionId || booking.kashierSessionId,
       )
     } else {
-      // If payment was not successful (failed, rejected, expired, cancelled, abandoned, etc.),
-      // mark booking as failed immediately so the time slot is freed for other customers.
-      await bookingsCollection.updateOne(
-        { reference },
-        {
-          $set: {
-            paymentStatus: 'failed',
-            status: 'failed',
-            updatedAt: now,
+      // Only mark as failed if booking was not already verified or confirmed
+      if (booking.paymentStatus !== 'verified' && booking.status !== 'confirmed') {
+        // If payment was not successful (failed, rejected, expired, cancelled, abandoned, etc.),
+        // mark booking as failed immediately so the time slot is freed for other customers.
+        await bookingsCollection.updateOne(
+          { reference },
+          {
+            $set: {
+              paymentStatus: 'failed',
+              status: 'failed',
+              updatedAt: now,
+            },
           },
-        },
-      )
+        )
+      }
     }
 
     // Update payment process record
+    const failureMsg =
+      eventData.failureReason ||
+      eventData.declinedReason ||
+      eventData.message ||
+      eventData.status ||
+      eventData.paymentStatus ||
+      'FAILED'
+
     await paymentProcessesCollection.updateOne(
       { bookingReference: reference },
       {
         $set: {
           ...(sessionId ? { kashierSessionId: sessionId } : {}),
           ...(transactionId ? { kashierTransactionId: transactionId } : {}),
-          kashierResponseMessage:
-            eventData.status || eventData.paymentStatus || '',
-          status: success ? 'verified' : 'failed',
+          kashierResponseMessage: success ? (eventData.status || 'SUCCESS') : failureMsg,
+          ...(booking.paymentStatus === 'verified' ? {} : { status: success ? 'verified' : 'failed' }),
           processedAt: now,
         },
       },

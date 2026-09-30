@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getBookingsCollection } from '@/lib/db'
+import { getBookingsCollection, getPaymentProcessesCollection } from '@/lib/db'
+import { getPaymentSession, isPaymentSuccessful, isPaymentFailed } from '@/lib/kashier'
 
 export const dynamic = 'force-dynamic'
 
@@ -34,69 +35,102 @@ export async function GET(request: NextRequest) {
     let currentBooking = booking
 
     // If still awaiting_payment with a Kashier session, check if it concluded
-    if (currentBooking.paymentStatus === 'awaiting_payment' && currentBooking.kashierSessionId) {
-      try {
-        const kashierBase =
-          process.env.KASHIER_MODE === 'live'
-            ? 'https://api.kashier.io'
-            : 'https://test-api.kashier.io'
-        const res = await fetch(
-          `${kashierBase}/v3/payment/sessions/${currentBooking.kashierSessionId}`,
-          { cache: 'no-store' },
-        )
-        const json = await res.json()
-        const session = json.data || json
-        const now = new Date()
+    if (currentBooking.paymentStatus === 'awaiting_payment' && currentBooking.paymentMethod === 'card') {
+      const now = new Date()
+      const isStale =
+        currentBooking.createdAt &&
+        now.getTime() - new Date(currentBooking.createdAt).getTime() > 30 * 60 * 1000
 
-        const status = (session.status || '').toUpperCase()
-        const isPaid =
-          status === 'SUCCESS' ||
-          status === 'PAID' ||
-          status === 'APPROVED'
+      if (currentBooking.kashierSessionId) {
+        try {
+          const sessionDetails = await getPaymentSession(currentBooking.kashierSessionId)
+          const isPaid = isPaymentSuccessful(sessionDetails)
+          const isFailed =
+            isPaymentFailed(sessionDetails) ||
+            (sessionDetails.expireAt && new Date(sessionDetails.expireAt as string) < now)
 
-        const isExpired = session.expireAt && new Date(session.expireAt) < now
-        const isFailed =
-          status === 'FAILURE' ||
-          status === 'FAILED' ||
-          status === 'EXPIRED' ||
-          status === 'ABANDONED' ||
-          json.error?.cause === 'Session expired' ||
-          isExpired
-
-        if (isPaid) {
-          const { confirmBookingAndCreateCalendar } = await import(
-            '@/lib/google-calendar'
-          )
-          const updated = await confirmBookingAndCreateCalendar(
-            currentBooking.reference,
-            currentBooking.kashierSessionId,
-          )
-          if (updated) currentBooking = updated
-        } else if (isFailed) {
-          await bookingsCollection.updateOne(
-            { _id: currentBooking._id },
-            { $set: { paymentStatus: 'failed', status: 'failed', updatedAt: now } },
-          )
-          const { getPaymentProcessesCollection } = await import('@/lib/db')
-          const paymentProcessesCollection = await getPaymentProcessesCollection()
-          await paymentProcessesCollection.updateOne(
-            { bookingReference: currentBooking.reference },
-            {
-              $set: {
-                status: 'failed',
-                kashierResponseMessage: session.declinedReason || 'FAILED',
-                processedAt: now,
+          if (isPaid) {
+            const { confirmBookingAndCreateCalendar } = await import(
+              '@/lib/google-calendar'
+            )
+            const updated = await confirmBookingAndCreateCalendar(
+              currentBooking.reference,
+              currentBooking.kashierSessionId,
+            )
+            if (updated) currentBooking = updated
+          } else if (isFailed) {
+            await bookingsCollection.updateOne(
+              { _id: currentBooking._id },
+              { $set: { paymentStatus: 'failed', status: 'failed', updatedAt: now } },
+            )
+            const paymentProcessesCollection = await getPaymentProcessesCollection()
+            await paymentProcessesCollection.updateOne(
+              { bookingReference: currentBooking.reference },
+              {
+                $set: {
+                  status: 'failed',
+                  kashierResponseMessage:
+                    (sessionDetails as any).declinedReason ||
+                    (sessionDetails as any).status ||
+                    'FAILED',
+                  processedAt: now,
+                },
               },
-            },
-          )
-          currentBooking = {
-            ...currentBooking,
-            paymentStatus: 'failed',
-            status: 'failed',
+            )
+            currentBooking = {
+              ...currentBooking,
+              paymentStatus: 'failed',
+              status: 'failed',
+            }
+          }
+        } catch (sessionErr) {
+          console.warn('[Booking Lookup] Session query warning:', sessionErr)
+          // If query fails but the booking is already stale (>30 mins), expire it
+          if (isStale) {
+            await bookingsCollection.updateOne(
+              { _id: currentBooking._id },
+              { $set: { paymentStatus: 'failed', status: 'failed', updatedAt: now } },
+            )
+            const paymentProcessesCollection = await getPaymentProcessesCollection()
+            await paymentProcessesCollection.updateOne(
+              { bookingReference: currentBooking.reference },
+              {
+                $set: {
+                  status: 'failed',
+                  kashierResponseMessage: 'EXPIRED',
+                  processedAt: now,
+                },
+              },
+            )
+            currentBooking = {
+              ...currentBooking,
+              paymentStatus: 'failed',
+              status: 'failed',
+            }
           }
         }
-      } catch (sessionErr) {
-        console.warn('[Booking Lookup] Session query warning:', sessionErr)
+      } else if (isStale) {
+        // No sessionId and stale (>30m)
+        await bookingsCollection.updateOne(
+          { _id: currentBooking._id },
+          { $set: { paymentStatus: 'failed', status: 'failed', updatedAt: now } },
+        )
+        const paymentProcessesCollection = await getPaymentProcessesCollection()
+        await paymentProcessesCollection.updateOne(
+          { bookingReference: currentBooking.reference },
+          {
+            $set: {
+              status: 'failed',
+              kashierResponseMessage: 'EXPIRED',
+              processedAt: now,
+            },
+          },
+        )
+        currentBooking = {
+          ...currentBooking,
+          paymentStatus: 'failed',
+          status: 'failed',
+        }
       }
     }
 

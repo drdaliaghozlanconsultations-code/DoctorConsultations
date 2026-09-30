@@ -142,7 +142,7 @@ export async function POST(request: Request) {
       createdAt: new Date(),
     })
 
-    // 3. Build merchant redirect URL (Kashier requires HTTPS)
+    // 3. Build merchant redirect and server webhook URLs (Kashier requires HTTPS)
     const rawOrigin =
       request.headers.get('origin') ||
       (request.headers.get('referer') ? new URL(request.headers.get('referer')!).origin : null) ||
@@ -154,14 +154,18 @@ export async function POST(request: Request) {
       (process.env.NEXT_PUBLIC_BASE_URL?.startsWith('https://') ? process.env.NEXT_PUBLIC_BASE_URL : null) ||
       'https://drdaliaghozlan.com'
 
-    const merchantRedirect = `${publicDomain.replace(/\/$/, '')}/api/payments/kashier/return?locale=${locale}&ref=${reference}`
+    const cleanDomain = publicDomain.replace(/\/$/, '').replace(/\/api\/payments\/kashier\/webhook$/, '')
+    const merchantRedirect = `${cleanDomain}/api/payments/kashier/return?locale=${locale}&ref=${reference}`
+    const serverWebhook = `${cleanDomain}/api/payments/kashier/webhook`
 
-    // 4. Create Kashier payment session
+    // 4. Create Kashier payment session with failure redirection and server webhook
     const sessionResponse = await createPaymentSession({
       order: reference,
       amount: chargeAmountEGP,
       currency: 'EGP',
       merchantRedirect,
+      serverWebhook,
+      failureRedirect: true,
       customer: {
         reference: email.trim(),
         name: patientName.trim(),

@@ -20,6 +20,8 @@ export interface CreateSessionParams {
   amount: number
   currency: 'EGP' | 'USD'
   merchantRedirect: string
+  serverWebhook?: string
+  failureRedirect?: boolean
   customer: KashierCustomer
   display?: 'en' | 'ar'
   expireMinutes?: number
@@ -185,7 +187,16 @@ export async function createPaymentSession(
     merchantRedirect = merchantRedirect.replace(/^http:\/\/[^/]+/, fallbackBase.replace(/\/$/, ''))
   }
 
-  const payload = {
+  // Determine serverWebhook URL
+  const webhookUrl =
+    params.serverWebhook ||
+    (process.env.KASHIER_WEBHOOK_URL
+      ? process.env.KASHIER_WEBHOOK_URL.includes('/api/payments/kashier/webhook')
+        ? process.env.KASHIER_WEBHOOK_URL
+        : `${process.env.KASHIER_WEBHOOK_URL.replace(/\/$/, '')}/api/payments/kashier/webhook`
+      : null)
+
+  const payload: Record<string, any> = {
     expireAt,
     maxFailureAttempts: 3,
     amount: String(params.amount),
@@ -193,6 +204,8 @@ export async function createPaymentSession(
     order: params.order,
     merchantId,
     merchantRedirect,
+    // When true, Kashier redirects to merchantRedirect on card failure instead of staying on checkout page
+    failureRedirect: params.failureRedirect !== false,
     display: params.display === 'ar' ? 'ar' : 'en',
     type: 'one-time',
     allowedMethods: 'card,wallet',
@@ -201,6 +214,10 @@ export async function createPaymentSession(
       email: params.customer.email,
       name: params.customer.name,
     },
+  }
+
+  if (webhookUrl && webhookUrl.startsWith('https://')) {
+    payload.serverWebhook = webhookUrl
   }
 
   const response = await fetch(`${baseUrl}/v3/payment/sessions`, {
@@ -264,7 +281,9 @@ export async function getPaymentSession(
     throw new Error(`Kashier query error: ${response.status}`)
   }
 
-  const data = (await response.json()) as KashierSessionDetails
+  const raw = (await response.json()) as any
+  // Kashier can wrap session in { response: ... } or { data: ... } or return directly
+  const data = (raw?.response || raw?.data || raw) as KashierSessionDetails
   return data
 }
 
@@ -278,5 +297,37 @@ export function isPaymentSuccessful(data: KashierSessionDetails | Record<string,
   const paymentStatus =
     typeof data.paymentStatus === 'string' ? data.paymentStatus.toUpperCase() : ''
 
-  return status === 'PAID' || paymentStatus === 'SUCCESS' || paymentStatus === 'PAID'
+  return (
+    status === 'PAID' ||
+    status === 'SUCCESS' ||
+    status === 'APPROVED' ||
+    paymentStatus === 'SUCCESS' ||
+    paymentStatus === 'PAID' ||
+    paymentStatus === 'APPROVED'
+  )
+}
+
+/**
+ * Check if a Kashier session or webhook payload indicates a failed/expired payment.
+ */
+export function isPaymentFailed(data: KashierSessionDetails | Record<string, any>): boolean {
+  if (!data) return false
+
+  const status = typeof data.status === 'string' ? data.status.toUpperCase() : ''
+  const paymentStatus =
+    typeof data.paymentStatus === 'string' ? data.paymentStatus.toUpperCase() : ''
+
+  return (
+    status === 'FAILED' ||
+    status === 'FAILURE' ||
+    status === 'EXPIRED' ||
+    status === 'ABANDONED' ||
+    status === 'CANCELLED' ||
+    status === 'CANCELED' ||
+    paymentStatus === 'FAILED' ||
+    paymentStatus === 'FAILURE' ||
+    paymentStatus === 'DECLINED' ||
+    paymentStatus === 'CANCELLED' ||
+    paymentStatus === 'CANCELED'
+  )
 }
