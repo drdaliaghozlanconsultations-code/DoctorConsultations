@@ -18,6 +18,7 @@ const uri = process.env.MONGODB_URI;
 const options: MongoClientOptions = {
   maxPoolSize: 10,
   serverSelectionTimeoutMS: 10000, // Timeout after 10s instead of hanging for 30s
+  connectTimeoutMS: 10000,
 };
 
 let client: MongoClient;
@@ -31,7 +32,12 @@ let globalWithMongo = global as typeof globalThis & {
 
 if (!globalWithMongo._mongoClientPromise) {
   client = new MongoClient(uri, options);
-  globalWithMongo._mongoClientPromise = client.connect();
+  globalWithMongo._mongoClientPromise = client.connect().catch((err) => {
+    // If the initial connection fails, clear the cached promise so subsequent
+    // requests attempt a fresh connection rather than failing immediately with a cached error.
+    globalWithMongo._mongoClientPromise = undefined;
+    throw err;
+  });
 }
 clientPromise = globalWithMongo._mongoClientPromise;
 
