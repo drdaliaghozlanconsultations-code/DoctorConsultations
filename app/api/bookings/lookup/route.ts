@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getBookingsCollection, getPaymentProcessesCollection } from '@/lib/db'
-import { getPaymentSession, isPaymentSuccessful, isPaymentFailed } from '@/lib/kashier'
+import { getPaymentSession, isPaymentSuccessful, isPaymentFailed, resolveFailureReason } from '@/lib/kashier'
 
 export const dynamic = 'force-dynamic'
 
@@ -59,10 +59,16 @@ export async function GET(request: NextRequest) {
             )
             if (updated) currentBooking = updated
           } else if (isFailed) {
-            const failureMsg =
+            const incomingFailureMsg =
               (sessionDetails as any).declinedReason ||
+              (sessionDetails as any).failureReason ||
+              (sessionDetails as any).message ||
               (sessionDetails as any).status ||
               'FAILED'
+            const failureMsg = resolveFailureReason(
+              incomingFailureMsg,
+              currentBooking.kashierResponseMessage,
+            )
             await bookingsCollection.updateOne(
               { _id: currentBooking._id },
               {
@@ -75,12 +81,19 @@ export async function GET(request: NextRequest) {
               },
             )
             const paymentProcessesCollection = await getPaymentProcessesCollection()
+            const existingProc = await paymentProcessesCollection.findOne({
+              bookingReference: currentBooking.reference,
+            })
+            const procFailureMsg = resolveFailureReason(
+              incomingFailureMsg,
+              existingProc?.kashierResponseMessage || currentBooking.kashierResponseMessage,
+            )
             await paymentProcessesCollection.updateOne(
               { bookingReference: currentBooking.reference },
               {
                 $set: {
                   status: 'failed',
-                  kashierResponseMessage: failureMsg,
+                  kashierResponseMessage: procFailureMsg,
                   processedAt: now,
                 },
               },

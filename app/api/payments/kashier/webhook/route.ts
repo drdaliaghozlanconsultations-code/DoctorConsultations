@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getBookingsCollection, getPaymentProcessesCollection } from '@/lib/db'
-import { isPaymentSuccessful, getPaymentSession } from '@/lib/kashier'
+import { isPaymentSuccessful, getPaymentSession, resolveFailureReason } from '@/lib/kashier'
 
 export const dynamic = 'force-dynamic'
 
@@ -83,6 +83,14 @@ export async function POST(request: Request) {
     const now = new Date()
     const reference = booking.reference
 
+    const incomingFailureMsg =
+      eventData.failureReason ||
+      eventData.declinedReason ||
+      eventData.message ||
+      eventData.status ||
+      eventData.paymentStatus ||
+      'FAILED'
+
     if (success) {
       // Auto-confirm booking and create Google Calendar event + Meet link
       const { confirmBookingAndCreateCalendar } = await import(
@@ -93,41 +101,45 @@ export async function POST(request: Request) {
         sessionId || transactionId || booking.kashierSessionId,
       )
     } else {
-      // Determine failure message
-      const failureMsg =
-        eventData.failureReason ||
-        eventData.declinedReason ||
-        eventData.message ||
-        eventData.status ||
-        eventData.paymentStatus ||
-        'FAILED'
+      // Resolve best failure message, protecting against late generic webhook overwrites (e.g. 'FAILED', 'EXPIRED')
+      const finalFailureMsg = resolveFailureReason(
+        incomingFailureMsg,
+        booking.kashierResponseMessage,
+      )
 
       // Only mark as failed if booking was not already verified or confirmed
       if (booking.paymentStatus !== 'verified' && booking.status !== 'confirmed') {
-        // If payment was not successful (failed, rejected, expired, cancelled, abandoned, etc.),
-        // mark booking as failed immediately so the time slot is freed for other customers.
-        await bookingsCollection.updateOne(
-          { reference },
-          {
-            $set: {
-              paymentStatus: 'failed',
-              status: 'failed',
-              kashierResponseMessage: failureMsg,
-              updatedAt: now,
+        const isAlreadyFailed =
+          booking.paymentStatus === 'failed' && booking.status === 'failed'
+
+        // Only update database if the booking isn't already failed or if we have a new/better failure reason
+        const shouldUpdate =
+          !isAlreadyFailed || (finalFailureMsg && finalFailureMsg !== booking.kashierResponseMessage)
+
+        if (shouldUpdate) {
+          await bookingsCollection.updateOne(
+            { reference },
+            {
+              $set: {
+                paymentStatus: 'failed',
+                status: 'failed',
+                kashierResponseMessage: finalFailureMsg,
+                updatedAt: now,
+              },
             },
-          },
-        )
+          )
+        }
       }
     }
 
-    // Update payment process record
-    const failureMsg =
-      eventData.failureReason ||
-      eventData.declinedReason ||
-      eventData.message ||
-      eventData.status ||
-      eventData.paymentStatus ||
-      'FAILED'
+    // Update payment process record, preserving any detailed failure reason
+    const existingProc = await paymentProcessesCollection.findOne({
+      bookingReference: reference,
+    })
+    const procFailureMsg = resolveFailureReason(
+      incomingFailureMsg,
+      existingProc?.kashierResponseMessage || booking.kashierResponseMessage,
+    )
 
     await paymentProcessesCollection.updateOne(
       { bookingReference: reference },
@@ -135,7 +147,7 @@ export async function POST(request: Request) {
         $set: {
           ...(sessionId ? { kashierSessionId: sessionId } : {}),
           ...(transactionId ? { kashierTransactionId: transactionId } : {}),
-          kashierResponseMessage: success ? (eventData.status || 'SUCCESS') : failureMsg,
+          kashierResponseMessage: success ? (eventData.status || 'SUCCESS') : procFailureMsg,
           ...(booking.paymentStatus === 'verified' ? {} : { status: success ? 'verified' : 'failed' }),
           processedAt: now,
         },

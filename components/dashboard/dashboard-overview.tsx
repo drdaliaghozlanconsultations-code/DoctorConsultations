@@ -5,6 +5,7 @@ import Link from 'next/link'
 import {
   Calendar,
   CalendarCheck2,
+  CalendarClock,
   Clock,
   CheckCircle2,
   XCircle,
@@ -19,11 +20,28 @@ import {
   Sparkles,
   Video,
   Phone,
+  Mail,
+  Edit2,
+  Trash2,
   MessageSquare,
   ExternalLink,
   ArrowRightLeft,
 } from 'lucide-react'
 import type { BookingItem, UserRole } from '@/lib/db'
+
+function formatCreatedDate(date?: string | Date) {
+  if (!date) return '—'
+  const d = new Date(date)
+  if (isNaN(d.getTime())) return '—'
+  return d.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  })
+}
 
 function formatTodayDate(dateStr?: string) {
   if (!dateStr) {
@@ -116,6 +134,129 @@ export function DashboardOverview({ initialStats, user }: DashboardOverviewProps
       console.error('Failed to update booking:', err)
     } finally {
       setLoadingId(null)
+    }
+  }
+
+  const isAdmin = user.role === 'admin'
+
+  // Edit / Reschedule Modal State
+  const [editingBooking, setEditingBooking] = useState<BookingItem | null>(null)
+  const [editDate, setEditDate] = useState('')
+  const [editTime, setEditTime] = useState('')
+  const [editPatientName, setEditPatientName] = useState('')
+  const [editPhone, setEditPhone] = useState('')
+  const [editWhatsapp, setEditWhatsapp] = useState('')
+  const [editEmail, setEditEmail] = useState('')
+  const [editNotes, setEditNotes] = useState('')
+  const [editStatus, setEditStatus] = useState<BookingItem['status']>('confirmed')
+  const [editLoading, setEditLoading] = useState(false)
+  const [editError, setEditError] = useState<string | null>(null)
+
+  const openEditModal = (b: BookingItem) => {
+    setEditingBooking(b)
+    setEditDate(b.date || '')
+    setEditTime(b.time || '10:00')
+    setEditPatientName(b.patientName || '')
+    setEditPhone(b.phone || '')
+    setEditWhatsapp(b.whatsapp || '')
+    setEditEmail(b.email || '')
+    setEditNotes(b.notes || '')
+    setEditStatus(b.status || 'confirmed')
+    setEditError(null)
+  }
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingBooking) return
+    setEditLoading(true)
+    setEditError(null)
+
+    try {
+      const res = await fetch('/api/dashboard/bookings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editingBooking._id,
+          date: editDate,
+          time: editTime,
+          patientName: editPatientName,
+          phone: editPhone,
+          whatsapp: editWhatsapp,
+          email: editEmail,
+          notes: editNotes,
+          status: editStatus,
+        }),
+      })
+
+      const data = await res.json()
+      if (data.success) {
+        setStats((prev) => ({
+          ...prev,
+          recentBookings: prev.recentBookings.map((b) =>
+            b._id === editingBooking._id
+              ? {
+                  ...b,
+                  date: editDate,
+                  time: editTime,
+                  patientName: editPatientName,
+                  phone: editPhone,
+                  whatsapp: editWhatsapp,
+                  email: editEmail,
+                  notes: editNotes,
+                  status: editStatus,
+                  googleMeetLink: data.meetLink || b.googleMeetLink,
+                }
+              : b,
+          ),
+          todayBookings: prev.todayBookings.map((b) =>
+            b._id === editingBooking._id
+              ? {
+                  ...b,
+                  date: editDate,
+                  time: editTime,
+                  patientName: editPatientName,
+                  phone: editPhone,
+                  whatsapp: editWhatsapp,
+                  email: editEmail,
+                  notes: editNotes,
+                  status: editStatus,
+                  googleMeetLink: data.meetLink || b.googleMeetLink,
+                }
+              : b,
+          ),
+        }))
+        setEditingBooking(null)
+      } else {
+        setEditError(data.error || 'Failed to update booking')
+      }
+    } catch (err: any) {
+      setEditError(err.message || 'Failed to update booking')
+    } finally {
+      setEditLoading(false)
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Are you sure you want to permanently delete this booking?')) {
+      return
+    }
+    try {
+      const res = await fetch(`/api/dashboard/bookings?id=${id}`, {
+        method: 'DELETE',
+      })
+      const data = await res.json()
+      if (data.success) {
+        setStats((prev) => ({
+          ...prev,
+          totalBookings: Math.max(0, prev.totalBookings - 1),
+          recentBookings: prev.recentBookings.filter((b) => b._id !== id),
+          todayBookings: prev.todayBookings.filter((b) => b._id !== id),
+        }))
+      } else {
+        alert(data.error || 'Failed to delete booking')
+      }
+    } catch {
+      alert('Network error while deleting booking')
     }
   }
 
@@ -467,76 +608,163 @@ export function DashboardOverview({ initialStats, user }: DashboardOverviewProps
           <div className="overflow-x-auto mt-6">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-border text-xs uppercase tracking-wider text-muted-foreground">
-                  <th className="pb-3 font-semibold">Reference & Patient</th>
-                  <th className="pb-3 font-semibold">Consultation</th>
-                  <th className="pb-3 font-semibold">Date & Time</th>
-                  <th className="pb-3 font-semibold">Payment</th>
-                  <th className="pb-3 font-semibold">Status</th>
-                  <th className="pb-3 font-semibold text-right">Actions</th>
+                <tr className="border-b border-border bg-muted/30 text-xs uppercase tracking-wider text-muted-foreground">
+                  <th className="py-4 px-6 font-semibold">Reference & Patient</th>
+                  <th className="py-4 px-4 font-semibold">Consultation</th>
+                  <th className="py-4 px-4 font-semibold">Date & Time</th>
+                  <th className="py-4 px-4 font-semibold">Amount & Method</th>
+                  <th className="py-4 px-4 font-semibold">Receipt</th>
+                  <th className="py-4 px-4 font-semibold">Status</th>
+                  <th className="py-4 px-6 font-semibold text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">
                 {stats.recentBookings.map((b) => (
-                  <tr key={b._id} className="hover:bg-muted/40 transition-colors">
-                    <td className="py-4">
-                      <div className="font-semibold text-foreground">{b.patientName}</div>
-                      <div className="text-xs text-muted-foreground flex items-center gap-2 mt-0.5">
-                        <span className="font-mono text-primary font-medium">{b.reference}</span>
-                        <span>•</span>
-                        <span>{b.phone}</span>
-                      </div>
-                    </td>
-                    <td className="py-4">
-                      <div className="text-sm text-foreground font-medium">
-                        {b.consultationTitle?.en || 'Consultation'}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {b.amount ? `${b.amount.toLocaleString()} ${b.currency}` : 'Unspecified'}
-                      </div>
-                      {b.originalAmount && b.originalCurrency && b.originalCurrency !== b.currency && (
-                        <div className="text-[11px] text-amber-700 dark:text-amber-400 font-medium flex items-center gap-1 mt-0.5">
-                          <ArrowRightLeft className="size-2.5 shrink-0" />
-                          <span>{b.originalAmount.toLocaleString()} {b.originalCurrency}</span>
-                          {b.exchangeRate && (
-                            <span className="text-[10px] text-muted-foreground font-mono">
-                              (@ {b.exchangeRate.toFixed(2)})
-                            </span>
-                          )}
+                  <tr key={b._id} className="hover:bg-muted/30 transition-colors">
+                    {/* Patient */}
+                    <td className="py-4 px-6">
+                      <div className="font-bold text-foreground">{b.patientName}</div>
+                      <div className="text-xs font-mono text-primary mt-0.5">{b.reference}</div>
+                      {b.createdAt && (
+                        <div
+                          className="text-[11px] text-muted-foreground/75 mt-1 flex items-center gap-1 font-mono"
+                          title="Date when booking was submitted"
+                        >
+                          <CalendarClock className="size-3 text-muted-foreground/70" />
+                          <span>Created: {formatCreatedDate(b.createdAt)}</span>
                         </div>
                       )}
-                    </td>
-                    <td className="py-4">
-                      <div className="text-sm text-foreground font-medium">{b.date}</div>
-                      <div className="text-xs text-muted-foreground">{b.time}</div>
-                    </td>
-                    <td className="py-4">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs uppercase font-medium bg-muted px-2 py-0.5 rounded-md text-foreground">
-                          {b.paymentMethod || 'InstaPay'}
+                      <div className="text-xs text-muted-foreground mt-1 flex flex-col gap-0.5">
+                        <span className="inline-flex items-center gap-1">
+                          <Phone className="size-3 text-muted-foreground" />
+                          {b.phone}
                         </span>
-                        {b.paymentReceiptUrl && (
-                          <button
-                            type="button"
-                            onClick={() => setSelectedReceipt(b.paymentReceiptUrl!)}
-                            className="inline-flex items-center gap-1 text-xs text-primary hover:underline font-semibold"
-                          >
-                            <Eye className="size-3" />
-                            Receipt
-                          </button>
+                        {b.email && (
+                          <span className="inline-flex items-center gap-1">
+                            <Mail className="size-3 text-muted-foreground" />
+                            {b.email}
+                          </span>
+                        )}
+                        {b.country && (
+                          <span className="text-[10px] text-muted-foreground/80 uppercase">
+                            Country: {b.country}
+                          </span>
                         )}
                       </div>
                     </td>
-                    <td className="py-4">
+
+                    {/* Consultation */}
+                    <td className="py-4 px-4">
+                      <div className="font-semibold text-foreground">
+                        {b.consultationTitle?.en || 'Consultation'}
+                      </div>
+                      <div className="text-xs text-primary font-serif dir-rtl text-right mt-0.5">
+                        {b.consultationTitle?.ar || ''}
+                      </div>
+                      {b.notes && (
+                        <div className="mt-1.5 text-xs text-muted-foreground bg-muted/60 p-2 rounded-xl max-w-xs">
+                          <span className="font-semibold">Notes:</span> {b.notes}
+                        </div>
+                      )}
+                    </td>
+
+                    {/* Date & Time */}
+                    <td className="py-4 px-4">
+                      <div className="font-medium text-foreground">{b.date}</div>
+                      <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                        <Clock className="size-3" />
+                        {b.time}
+                      </div>
+                      {b.googleMeetLink && (
+                        <a
+                          href={b.googleMeetLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-1.5 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 transition-all shadow-2xs"
+                          title="Open Google Meet Video Call"
+                        >
+                          <Video className="size-3" />
+                          <span>Join Meet</span>
+                        </a>
+                      )}
+                    </td>
+
+                    {/* Amount & Method */}
+                    <td className="py-4 px-4">
+                      <div className="font-bold text-foreground">
+                        {b.amount ? `${b.amount.toLocaleString()} ${b.currency}` : '—'}
+                      </div>
+                      {b.originalAmount && b.originalCurrency && b.originalCurrency !== b.currency ? (
+                        <div className="mt-1 flex flex-col gap-0.5">
+                          <span
+                            className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-700 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-md w-fit"
+                            title={`Originally charged ${b.originalAmount} ${b.originalCurrency}`}
+                          >
+                            <ArrowRightLeft className="size-2.5 shrink-0" />
+                            <span>{b.originalAmount.toLocaleString()} {b.originalCurrency}</span>
+                          </span>
+                          {b.exchangeRate && (
+                            <span
+                              className="text-[10px] text-muted-foreground font-mono pl-0.5"
+                              title={`Conversion Rate: 1 ${b.originalCurrency} = ${b.exchangeRate.toFixed(2)} EGP`}
+                            >
+                              1 {b.originalCurrency} = {b.exchangeRate.toFixed(2)} EGP
+                            </span>
+                          )}
+                        </div>
+                      ) : null}
+                      <span className="inline-block text-[10px] uppercase font-semibold bg-secondary/80 px-2 py-0.5 rounded-md text-secondary-foreground mt-1">
+                        {b.paymentMethod || 'InstaPay'}
+                      </span>
+                    </td>
+
+                    {/* Receipt */}
+                    <td className="py-4 px-4">
+                      {b.paymentReceiptUrl ? (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedReceipt(b.paymentReceiptUrl!)}
+                          className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-primary/10 text-primary hover:bg-primary/20 text-xs font-semibold transition-colors"
+                        >
+                          <Eye className="size-3" />
+                          <span>View Receipt</span>
+                        </button>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">No receipt</span>
+                      )}
+                    </td>
+
+                    {/* Status */}
+                    <td className="py-4 px-4">
                       {b.status === 'confirmed' ? (
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
                           <CheckCircle2 className="size-3" />
                           Confirmed
                         </span>
+                      ) : b.paymentStatus === 'failed' || b.paymentStatus === 'rejected' || b.status === 'failed' ? (
+                        <div className="flex flex-col gap-1 items-start">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-600 border border-rose-500/20">
+                            <XCircle className="size-3" />
+                            Failed
+                          </span>
+                          {b.kashierResponseMessage && (
+                            <span
+                              className="text-[10px] text-rose-500/90 font-mono truncate max-w-[130px]"
+                              title={`Failure Reason: ${b.kashierResponseMessage}`}
+                            >
+                              {b.kashierResponseMessage}
+                            </span>
+                          )}
+                        </div>
                       ) : b.status === 'cancelled' ? (
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-600 border border-rose-500/20">
                           <XCircle className="size-3" />
                           Cancelled
+                        </span>
+                      ) : b.paymentStatus === 'awaiting_payment' ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-600 border border-amber-500/20">
+                          <Clock className="size-3" />
+                          Awaiting Payment
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-600 border border-amber-500/20">
@@ -545,29 +773,51 @@ export function DashboardOverview({ initialStats, user }: DashboardOverviewProps
                         </span>
                       )}
                     </td>
-                    <td className="py-4 text-right">
-                      {b.status === 'pending' ? (
-                        <div className="inline-flex items-center gap-1.5 justify-end">
+
+                    {/* Actions */}
+                    <td className="py-4 px-6 text-right">
+                      <div className="inline-flex items-center gap-1.5 justify-end">
+                        {b.status === 'pending' && (b.paymentMethod === 'instapay' || !b.paymentMethod) && (
+                          <>
+                            <button
+                              type="button"
+                              disabled={loadingId === b._id}
+                              onClick={() => handleUpdateStatus(b._id, 'confirmed', 'verified')}
+                              className="px-3 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition-all shadow-xs disabled:opacity-50"
+                            >
+                              {loadingId === b._id ? '...' : 'Accept'}
+                            </button>
+                            <button
+                              type="button"
+                              disabled={loadingId === b._id}
+                              onClick={() => handleUpdateStatus(b._id, 'cancelled', 'rejected')}
+                              className="px-3 py-1.5 rounded-full bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 text-xs font-semibold hover:bg-rose-200 transition-all disabled:opacity-50"
+                            >
+                              Reject
+                            </button>
+                          </>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => openEditModal(b)}
+                          className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                          title="Edit & Reschedule Appointment"
+                        >
+                          <Edit2 className="size-4" />
+                        </button>
+
+                        {isAdmin && (
                           <button
                             type="button"
-                            disabled={loadingId === b._id}
-                            onClick={() => handleUpdateStatus(b._id, 'confirmed', 'verified')}
-                            className="px-3 py-1 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition-all disabled:opacity-50"
+                            onClick={() => handleDelete(b._id)}
+                            className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                            title="Delete booking"
                           >
-                            {loadingId === b._id ? '...' : 'Accept'}
+                            <Trash2 className="size-4" />
                           </button>
-                          <button
-                            type="button"
-                            disabled={loadingId === b._id}
-                            onClick={() => handleUpdateStatus(b._id, 'cancelled', 'rejected')}
-                            className="px-3 py-1 rounded-full bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 text-xs font-semibold hover:bg-rose-200 transition-all disabled:opacity-50"
-                          >
-                            Reject
-                          </button>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">Completed</span>
-                      )}
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -576,6 +826,252 @@ export function DashboardOverview({ initialStats, user }: DashboardOverviewProps
           </div>
         )}
       </div>
+
+      {/* Modal for Edit & Reschedule Booking */}
+      {editingBooking && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs overflow-y-auto">
+          <div className="bg-card max-h-[94vh] overflow-y-scroll rounded-[2.5rem] border border-border p-6 sm:p-8 max-w-lg w-full relative shadow-2xl my-8">
+            <div className="flex items-center justify-between pb-4 border-b border-border">
+              <div>
+                <h3 className="font-serif text-lg font-bold text-foreground">
+                  Edit & Reschedule Appointment
+                </h3>
+                <p className="text-xs font-mono text-primary mt-0.5">
+                  {editingBooking.reference} — {editingBooking.consultationTitle?.en}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingBooking(null)}
+                className="text-muted-foreground hover:text-foreground text-sm font-semibold p-1"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} className="space-y-4 mt-6">
+              {editError && (
+                <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-3.5 text-xs font-medium text-destructive">
+                  {editError}
+                </div>
+              )}
+
+              {/* Payment & Conversion Info Card */}
+              <div className="rounded-2xl border border-border bg-muted/40 p-4 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Payment & Billing Details
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="inline-block text-[10px] uppercase font-semibold bg-secondary px-2 py-0.5 rounded-md text-secondary-foreground">
+                      {editingBooking.paymentMethod || 'InstaPay'}
+                    </span>
+                    <span
+                      className={`inline-block text-[10px] uppercase font-semibold px-2 py-0.5 rounded-md ${
+                        editingBooking.paymentStatus === 'verified'
+                          ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
+                          : editingBooking.paymentStatus === 'failed' || editingBooking.paymentStatus === 'rejected'
+                            ? 'bg-rose-500/10 text-rose-600 border border-rose-500/20'
+                            : 'bg-amber-500/10 text-amber-600 border border-amber-500/20'
+                      }`}
+                    >
+                      {editingBooking.paymentStatus}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-baseline justify-between pt-1">
+                  <div>
+                    <span className="text-base font-bold text-foreground">
+                      {editingBooking.amount
+                        ? `${editingBooking.amount.toLocaleString()} ${editingBooking.currency}`
+                        : '—'}
+                    </span>
+                    <span className="text-xs text-muted-foreground ml-1.5">
+                      (Billed Amount)
+                    </span>
+                  </div>
+                  {editingBooking.originalAmount &&
+                    editingBooking.originalCurrency &&
+                    editingBooking.originalCurrency !== editingBooking.currency && (
+                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md">
+                        <ArrowRightLeft className="size-3" />
+                        Original: {editingBooking.originalAmount.toLocaleString()}{' '}
+                        {editingBooking.originalCurrency}
+                      </span>
+                    )}
+                </div>
+
+                {editingBooking.exchangeRate && (
+                  <div className="text-xs text-muted-foreground flex items-center justify-between border-t border-border/60 pt-2">
+                    <span>Kashier Exchange Rate:</span>
+                    <span className="font-mono font-medium text-foreground">
+                      1 {editingBooking.originalCurrency || 'USD'} ={' '}
+                      {editingBooking.exchangeRate.toFixed(4)} EGP
+                    </span>
+                  </div>
+                )}
+                {editingBooking.kashierResponseMessage &&
+                  (editingBooking.paymentStatus === 'failed' ||
+                    editingBooking.paymentStatus === 'rejected' ||
+                    editingBooking.status === 'failed') && (
+                    <div className="text-xs text-rose-600 dark:text-rose-400 bg-rose-500/10 border border-rose-500/20 p-2.5 rounded-xl flex items-start gap-2 border-t border-border/60 pt-2">
+                      <AlertCircle className="size-4 shrink-0 mt-0.5 text-rose-500" />
+                      <div className="flex-1">
+                        <span className="font-semibold block text-[11px] uppercase tracking-wider text-rose-700 dark:text-rose-300">
+                          Kashier Failure Reason:
+                        </span>
+                        <span className="font-mono text-xs break-all text-rose-600 dark:text-rose-400">
+                          {editingBooking.kashierResponseMessage}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                {editingBooking.kashierSessionId && (
+                  <div className="text-[11px] text-muted-foreground flex items-center justify-between border-t border-border/60 pt-1.5 font-mono">
+                    <span>Kashier Session ID:</span>
+                    <span
+                      className="text-foreground/80 truncate max-w-[220px]"
+                      title={editingBooking.kashierSessionId}
+                    >
+                      {editingBooking.kashierSessionId}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Reschedule Date & Time */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-muted/30 p-4 rounded-2xl border border-border">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                    Appointment Date *
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={editDate}
+                    onChange={(e) => setEditDate(e.target.value)}
+                    className="w-full rounded-xl border border-border bg-background p-2.5 text-sm focus:border-primary focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                    Time Slot *
+                  </label>
+                  <input
+                    type="time"
+                    required
+                    value={editTime}
+                    onChange={(e) => setEditTime(e.target.value)}
+                    className="w-full rounded-xl border border-border bg-background p-2.5 text-sm focus:border-primary focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Patient Info */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                    Patient Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editPatientName}
+                    onChange={(e) => setEditPatientName(e.target.value)}
+                    className="w-full rounded-2xl border border-border bg-background p-3 text-sm focus:border-primary focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                    Status
+                  </label>
+                  <select
+                    value={editStatus}
+                    onChange={(e) => setEditStatus(e.target.value as BookingItem['status'])}
+                    className="w-full rounded-2xl border border-border bg-background p-3 text-sm focus:border-primary focus:outline-none"
+                  >
+                    <option value="pending">Pending</option>
+                    <option value="confirmed">Confirmed</option>
+                    <option value="failed">Failed</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Phone & Email */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                    Phone
+                  </label>
+                  <input
+                    type="tel"
+                    value={editPhone}
+                    onChange={(e) => setEditPhone(e.target.value)}
+                    className="w-full rounded-2xl border border-border bg-background p-3 text-sm focus:border-primary focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={editEmail}
+                    onChange={(e) => setEditEmail(e.target.value)}
+                    className="w-full rounded-2xl border border-border bg-background p-3 text-sm focus:border-primary focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                  Notes
+                </label>
+                <textarea
+                  rows={2}
+                  value={editNotes}
+                  onChange={(e) => setEditNotes(e.target.value)}
+                  className="w-full rounded-2xl border border-border bg-background p-3 text-sm focus:border-primary focus:outline-none"
+                />
+              </div>
+
+              {editingBooking.googleCalendarEventId && (
+                <div className="rounded-2xl border border-blue-500/20 bg-blue-500/10 p-3 text-xs text-blue-600 dark:text-blue-400 flex items-center gap-2">
+                  <CalendarClock className="size-4 shrink-0" />
+                  <span>
+                    Google Calendar is connected. Updating date/time will automatically reschedule the Google Meet and notify the patient.
+                  </span>
+                </div>
+              )}
+
+              {/* Submit Buttons */}
+              <div className="pt-4 flex items-center justify-end gap-3 border-t border-border mt-6">
+                <button
+                  type="button"
+                  onClick={() => setEditingBooking(null)}
+                  className="px-5 py-2.5 rounded-full border border-border text-sm font-medium text-foreground hover:bg-muted"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={editLoading}
+                  className="px-6 py-2.5 rounded-full bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 shadow-md disabled:opacity-50"
+                >
+                  {editLoading ? 'Saving...' : 'Save & Reschedule'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Modal for viewing Payment Receipt */}
       {selectedReceipt && (

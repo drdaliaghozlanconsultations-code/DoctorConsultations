@@ -1,6 +1,12 @@
 import React from 'react'
 import { verifySession } from '@/lib/auth/dal'
-import { getBookingsCollection, getConsultationsCollection, getVisitsCollection, BookingItem } from '@/lib/db'
+import {
+  getBookingsCollection,
+  getConsultationsCollection,
+  getVisitsCollection,
+  getPaymentProcessesCollection,
+  BookingItem,
+} from '@/lib/db'
 import { DashboardOverview } from '@/components/dashboard/dashboard-overview'
 
 export const dynamic = 'force-dynamic'
@@ -42,6 +48,21 @@ export default async function DashboardPage() {
     bookingsCollection.find({ date: todayDateStr }).sort({ time: 1 }).toArray(),
   ])
 
+  // Enrich any failed booking missing kashierResponseMessage from paymentProcesses
+  const allDocs = [...recentBookingsDocs, ...todayBookingsDocs]
+  const missingRefs = allDocs
+    .filter((b) => !b.kashierResponseMessage && (b.paymentStatus === 'failed' || b.status === 'failed'))
+    .map((b) => b.reference)
+
+  let procMap = new Map<string, string>()
+  if (missingRefs.length > 0) {
+    const paymentProcessesCollection = await getPaymentProcessesCollection()
+    const processes = await paymentProcessesCollection
+      .find({ bookingReference: { $in: missingRefs }, kashierResponseMessage: { $exists: true } })
+      .toArray()
+    procMap = new Map(processes.map((p) => [p.bookingReference, p.kashierResponseMessage || '']))
+  }
+
   const initialStats = {
     pendingBookings,
     confirmedBookings,
@@ -53,10 +74,12 @@ export default async function DashboardPage() {
     todayBookings: todayBookingsDocs.map((b): BookingItem => ({
       ...b,
       _id: b._id?.toString() || '',
+      kashierResponseMessage: b.kashierResponseMessage || procMap.get(b.reference) || undefined,
     })),
     recentBookings: recentBookingsDocs.map((b): BookingItem => ({
       ...b,
       _id: b._id?.toString() || '',
+      kashierResponseMessage: b.kashierResponseMessage || procMap.get(b.reference) || undefined,
     })),
   }
 

@@ -331,3 +331,56 @@ export function isPaymentFailed(data: KashierSessionDetails | Record<string, any
     paymentStatus === 'CANCELED'
   )
 }
+
+const GENERIC_FAILURE_MESSAGES = new Set([
+  '',
+  'FAILED',
+  'FAILURE',
+  'EXPIRED',
+  'UNKNOWN',
+  'TIMEOUT',
+  'TIMED_OUT',
+  'TIMED OUT',
+  'SESSION_EXPIRED',
+  'SESSION EXPIRED',
+  'ORDER EXPIRED',
+  'ORDER HAS EXPIRED',
+  'ORDER_EXPIRED',
+  'CANCELLED',
+  'CANCELED',
+  'ABANDONED',
+])
+
+/**
+ * Check if a Kashier response/failure message is generic or a placeholder
+ * (e.g. 'FAILED', 'EXPIRED') rather than a detailed reason (e.g. 'Insufficient funds', 'Do Not Honor').
+ */
+export function isGenericFailureMessage(msg?: string | null): boolean {
+  if (!msg) return true
+  const norm = msg.trim().toUpperCase()
+  return GENERIC_FAILURE_MESSAGES.has(norm)
+}
+
+/**
+ * Resolve the most informative failure reason, preventing generic late webhook
+ * statuses (like 'FAILED' or 'EXPIRED') from overwriting detailed decline reasons.
+ */
+export function resolveFailureReason(
+  incomingReason?: string | null,
+  existingReason?: string | null,
+): string {
+  const hasExisting = !isGenericFailureMessage(existingReason)
+  const hasIncoming = !isGenericFailureMessage(incomingReason)
+
+  // If we already have a detailed reason and the incoming message is generic (e.g. late webhook 'FAILED'), keep existing
+  if (hasExisting && !hasIncoming) {
+    return existingReason!.trim()
+  }
+  // If incoming has a specific reason, use it
+  if (hasIncoming) {
+    return incomingReason!.trim()
+  }
+  // If both are generic or empty, use whichever is present or fallback to 'FAILED'
+  return incomingReason?.trim() || existingReason?.trim() || 'FAILED'
+}
+
