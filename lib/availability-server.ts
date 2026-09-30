@@ -203,6 +203,7 @@ export async function getSlotsForDate(
             $set: {
               status: 'failed',
               paymentStatus: 'failed',
+              kashierResponseMessage: 'EXPIRED',
               updatedAt: now,
             },
           },

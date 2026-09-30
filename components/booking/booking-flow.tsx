@@ -140,7 +140,7 @@ export function BookingFlow({
             }
           }
         })
-        .catch(() => {})
+        .catch(() => { })
     } else if (urlStatus === 'failed') {
       setResultModalStatus('failed')
       setResultModalData({ reference: urlRef })
@@ -429,7 +429,7 @@ export function BookingFlow({
       )}
 
       {/* Main Step Container */}
-      <div className="rounded-[2.5rem] border border-border bg-card p-6 shadow-sm sm:p-12">
+      <div className="rounded-[2.5rem] border border-border bg-card p-5 shadow-sm sm:p-8 md:p-5">
         {stepError && (
           <div className="mb-6 rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-xs font-medium text-destructive">
             {stepError}
@@ -526,7 +526,7 @@ export function BookingFlow({
 
         {/* Navigation Buttons for Steps 1–4 */}
         {currentStep <= 4 && (
-          <div className="mt-12 flex items-center justify-between border-t border-border pt-8">
+          <div className="mt-2 sm:mt-4 flex items-center justify-between border-t border-border pt-5 sm:pt-6">
             <button
               type="button"
               disabled={currentStep === 1}

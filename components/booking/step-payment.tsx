@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   Smartphone,
   Loader2,
+  Info,
 } from 'lucide-react'
 import type { Locale } from '@/lib/i18n/config'
 import type { Dictionary } from '@/lib/i18n'
@@ -222,6 +223,23 @@ export function StepPayment({
                 </div>
               </div>
             </div>
+
+            {/* USD Currency Exchange Notice */}
+            {/* {currency === 'USD' && (
+              <div className="mt-3 rounded-2xl border border-amber-500/30 bg-amber-100/30 p-3.5 text-xs text-amber-900 dark:text-amber-200 flex items-start gap-2.5">
+                <Info className="size-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+                <div className="space-y-1">
+                  <p className="font-semibold text-xs text-amber-950 dark:text-amber-600">
+                    {isArabic ? 'تنويه بشأن العملة وسعر الصرف:' : 'Currency & Exchange Notice:'}
+                  </p>
+                  <p className="leading-relaxed text-[11px] text-amber-800/90 dark:text-amber-500/90">
+                    {isArabic
+                      ? 'نظراً للوائح والتعليمات المصرفية في مصر، سيظهر المبلغ في صفحة الدفع بالجنيه المصري (EGP) بما يعادل قيمة الدولار الأمريكي وفقاً لسعر الصرف البنكي الرسمي لحظة الدفع.'
+                      : 'Due to Egyptian banking regulations and local gateway rules, the transaction will be billed on the checkout page in Egyptian Pounds (EGP) equivalent to the USD amount at the official live exchange rate.'}
+                  </p>
+                </div>
+              </div>
+            )} */}
           </div>
 
           {/* ─── InstaPay Section (EGP only) ─── */}
@@ -364,6 +382,17 @@ export function StepPayment({
                       : 'By clicking the button below, you will be redirected to the secure Kashier payment page to enter your card details. Your card information is never stored on our servers.'}
                   </p>
 
+                  {currency === 'USD' && (
+                    <div className="rounded-2xl border dark:bg-amber-50 border-amber-500/25 bg-amber-200/30 p-3 text-[11px] text-amber-900 dark:text-amber-500 flex items-start gap-2">
+                      <Info className="size-3.5 dark:bg-amber-200/30 bg-amber-200/30 shrink-0 mt-0.5 text-amber-600 dark:text-amber-600" />
+                      <p className="leading-relaxed">
+                        {isArabic
+                          ? 'تنويه: ستظهر القيمة في صفحة كاشير بالجنيه المصري (EGP) بما يعادل قيمة الدولار الأمريكي التزاماً باللوائح والتعليمات المصرفية المحلية.'
+                          : 'Note: The total will be billed on the Kashier checkout screen in Egyptian Pounds (EGP) equivalent to the USD amount in accordance with local banking regulations.'}
+                      </p>
+                    </div>
+                  )}
+
                   {/* <div className="flex items-center gap-3 flex-wrap pt-1">
                     <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground bg-card px-2.5 py-1 rounded-full border border-border">
                       <ShieldCheck className="size-3 text-emerald-500" /> PCI DSS Compliant
@@ -445,6 +474,14 @@ export function StepPayment({
                   {displayPrice}
                 </dd>
               </div>
+
+              {currency === 'USD' && (
+                <p className="pt-1 text-[11px] text-muted-foreground/80 leading-relaxed">
+                  {isArabic
+                    ? '* يُحصل بالجنيه المصري (EGP) بما يعادل قيمة الدولار وفقاً للوائح والتعليمات المصرفية'
+                    : '* Billed in EGP equivalent per local banking regulations'}
+                </p>
+              )}
             </dl>
           </div>
         </div>

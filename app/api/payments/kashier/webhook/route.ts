@@ -93,6 +93,15 @@ export async function POST(request: Request) {
         sessionId || transactionId || booking.kashierSessionId,
       )
     } else {
+      // Determine failure message
+      const failureMsg =
+        eventData.failureReason ||
+        eventData.declinedReason ||
+        eventData.message ||
+        eventData.status ||
+        eventData.paymentStatus ||
+        'FAILED'
+
       // Only mark as failed if booking was not already verified or confirmed
       if (booking.paymentStatus !== 'verified' && booking.status !== 'confirmed') {
         // If payment was not successful (failed, rejected, expired, cancelled, abandoned, etc.),
@@ -103,6 +112,7 @@ export async function POST(request: Request) {
             $set: {
               paymentStatus: 'failed',
               status: 'failed',
+              kashierResponseMessage: failureMsg,
               updatedAt: now,
             },
           },

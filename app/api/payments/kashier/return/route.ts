@@ -226,18 +226,22 @@ async function handleReturn(request: NextRequest) {
   } else {
     // 1. Any non-successful return (failed, declined, cancelled, pending, abandoned)
     // is marked as failed immediately so the time slot is freed for other patients.
+    const finalFailureReason = failureReason || paymentStatus || 'FAILED'
+
     await bookingsCollection.updateOne(
       { _id: booking._id },
       {
         $set: {
           paymentStatus: 'failed',
           status: 'failed',
+          kashierResponseMessage: finalFailureReason,
           updatedAt: now,
         },
       },
     )
     booking.paymentStatus = 'failed'
     booking.status = 'failed'
+    booking.kashierResponseMessage = finalFailureReason
 
     // 2. Mark payment process record as failed
     await paymentProcessesCollection.updateOne(

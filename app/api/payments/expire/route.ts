@@ -98,6 +98,7 @@ async function handleExpire(request: NextRequest) {
         $set: {
           paymentStatus: 'failed',
           status: 'failed',
+          kashierResponseMessage: 'EXPIRED',
           updatedAt: now,
         },
       },

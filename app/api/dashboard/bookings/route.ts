@@ -54,6 +54,7 @@ export async function GET(request: Request) {
     }
 
     const bookingsCollection = await getBookingsCollection()
+    const paymentProcessesCollection = await getPaymentProcessesCollection()
 
     const [totalCount, items] = await Promise.all([
       bookingsCollection.countDocuments(query),
@@ -65,9 +66,22 @@ export async function GET(request: Request) {
         .toArray(),
     ])
 
+    const missingRefs = items
+      .filter((b) => !b.kashierResponseMessage && (b.paymentStatus === 'failed' || b.status === 'failed'))
+      .map((b) => b.reference)
+
+    let procMap = new Map<string, string>()
+    if (missingRefs.length > 0) {
+      const processes = await paymentProcessesCollection
+        .find({ bookingReference: { $in: missingRefs }, kashierResponseMessage: { $exists: true } })
+        .toArray()
+      procMap = new Map(processes.map((p) => [p.bookingReference, p.kashierResponseMessage || '']))
+    }
+
     const formatted = items.map((doc) => ({
       ...doc,
       _id: doc._id?.toString(),
+      kashierResponseMessage: doc.kashierResponseMessage || procMap.get(doc.reference) || undefined,
     }))
 
     return NextResponse.json({

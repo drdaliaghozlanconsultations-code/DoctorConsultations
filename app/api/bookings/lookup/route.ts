@@ -59,9 +59,20 @@ export async function GET(request: NextRequest) {
             )
             if (updated) currentBooking = updated
           } else if (isFailed) {
+            const failureMsg =
+              (sessionDetails as any).declinedReason ||
+              (sessionDetails as any).status ||
+              'FAILED'
             await bookingsCollection.updateOne(
               { _id: currentBooking._id },
-              { $set: { paymentStatus: 'failed', status: 'failed', updatedAt: now } },
+              {
+                $set: {
+                  paymentStatus: 'failed',
+                  status: 'failed',
+                  kashierResponseMessage: failureMsg,
+                  updatedAt: now,
+                },
+              },
             )
             const paymentProcessesCollection = await getPaymentProcessesCollection()
             await paymentProcessesCollection.updateOne(
@@ -69,10 +80,7 @@ export async function GET(request: NextRequest) {
               {
                 $set: {
                   status: 'failed',
-                  kashierResponseMessage:
-                    (sessionDetails as any).declinedReason ||
-                    (sessionDetails as any).status ||
-                    'FAILED',
+                  kashierResponseMessage: failureMsg,
                   processedAt: now,
                 },
               },
@@ -81,6 +89,7 @@ export async function GET(request: NextRequest) {
               ...currentBooking,
               paymentStatus: 'failed',
               status: 'failed',
+              kashierResponseMessage: failureMsg,
             }
           }
         } catch (sessionErr) {
@@ -89,7 +98,14 @@ export async function GET(request: NextRequest) {
           if (isStale) {
             await bookingsCollection.updateOne(
               { _id: currentBooking._id },
-              { $set: { paymentStatus: 'failed', status: 'failed', updatedAt: now } },
+              {
+                $set: {
+                  paymentStatus: 'failed',
+                  status: 'failed',
+                  kashierResponseMessage: 'EXPIRED',
+                  updatedAt: now,
+                },
+              },
             )
             const paymentProcessesCollection = await getPaymentProcessesCollection()
             await paymentProcessesCollection.updateOne(
@@ -106,6 +122,7 @@ export async function GET(request: NextRequest) {
               ...currentBooking,
               paymentStatus: 'failed',
               status: 'failed',
+              kashierResponseMessage: 'EXPIRED',
             }
           }
         }
@@ -113,7 +130,14 @@ export async function GET(request: NextRequest) {
         // No sessionId and stale (>30m)
         await bookingsCollection.updateOne(
           { _id: currentBooking._id },
-          { $set: { paymentStatus: 'failed', status: 'failed', updatedAt: now } },
+          {
+            $set: {
+              paymentStatus: 'failed',
+              status: 'failed',
+              kashierResponseMessage: 'EXPIRED',
+              updatedAt: now,
+            },
+          },
         )
         const paymentProcessesCollection = await getPaymentProcessesCollection()
         await paymentProcessesCollection.updateOne(
@@ -130,6 +154,7 @@ export async function GET(request: NextRequest) {
           ...currentBooking,
           paymentStatus: 'failed',
           status: 'failed',
+          kashierResponseMessage: 'EXPIRED',
         }
       }
     }

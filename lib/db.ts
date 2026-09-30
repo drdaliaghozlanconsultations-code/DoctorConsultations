@@ -64,6 +64,7 @@ export interface BookingDoc {
   paymentReceiptPublicId?: string
   paymentStatus: PaymentStatus
   kashierSessionId?: string
+  kashierResponseMessage?: string
   paytabsTranRef?: string
   verifiedBy?: string
   verifiedAt?: Date

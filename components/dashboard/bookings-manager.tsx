@@ -222,17 +222,17 @@ export function BookingsManager({ initialBookings, initialTotalCount, initialTot
           prev.map((b) =>
             b._id === editingBooking._id
               ? {
-                  ...b,
-                  date: editDate,
-                  time: editTime,
-                  patientName: editPatientName,
-                  phone: editPhone,
-                  whatsapp: editWhatsapp,
-                  email: editEmail,
-                  notes: editNotes,
-                  status: editStatus,
-                  googleMeetLink: data.meetLink || b.googleMeetLink,
-                }
+                ...b,
+                date: editDate,
+                time: editTime,
+                patientName: editPatientName,
+                phone: editPhone,
+                whatsapp: editWhatsapp,
+                email: editEmail,
+                notes: editNotes,
+                status: editStatus,
+                googleMeetLink: data.meetLink || b.googleMeetLink,
+              }
               : b,
           ),
         )
@@ -380,11 +380,10 @@ export function BookingsManager({ initialBookings, initialTotalCount, initialTot
                 key={status}
                 type="button"
                 onClick={() => setStatusFilter(status)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold capitalize transition-all ${
-                  statusFilter === status
-                    ? 'bg-card text-foreground shadow-xs font-bold'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold capitalize transition-all ${statusFilter === status
+                  ? 'bg-card text-foreground shadow-xs font-bold'
+                  : 'text-muted-foreground hover:text-foreground'
+                  }`}
               >
                 {status}
               </button>
@@ -439,31 +438,31 @@ export function BookingsManager({ initialBookings, initialTotalCount, initialTot
                   <tr key={b._id} className="hover:bg-muted/30 transition-colors">
                     {/* Patient */}
                     <td className="py-4 px-6">
-                       <div className="font-bold text-foreground">{b.patientName}</div>
-                       <div className="text-xs font-mono text-primary mt-0.5">{b.reference}</div>
-                       {b.createdAt && (
-                         <div className="text-[11px] text-muted-foreground/75 mt-1 flex items-center gap-1 font-mono" title="Date when booking was submitted">
-                           <CalendarClock className="size-3 text-muted-foreground/70" />
-                           <span>Created: {formatCreatedDate(b.createdAt)}</span>
-                         </div>
-                       )}
-                       <div className="text-xs text-muted-foreground mt-1 flex flex-col gap-0.5">
-                         <span className="inline-flex items-center gap-1">
-                           <Phone className="size-3 text-muted-foreground" />
-                           {b.phone}
-                         </span>
-                         {b.email && (
-                           <span className="inline-flex items-center gap-1">
-                             <Mail className="size-3 text-muted-foreground" />
-                             {b.email}
-                           </span>
-                         )}
-                         {b.country && (
-                           <span className="text-[10px] text-muted-foreground/80 uppercase">
-                             Country: {b.country}
-                           </span>
-                         )}
-                       </div>
+                      <div className="font-bold text-foreground">{b.patientName}</div>
+                      <div className="text-xs font-mono text-primary mt-0.5">{b.reference}</div>
+                      {b.createdAt && (
+                        <div className="text-[11px] text-muted-foreground/75 mt-1 flex items-center gap-1 font-mono" title="Date when booking was submitted">
+                          <CalendarClock className="size-3 text-muted-foreground/70" />
+                          <span>Created: {formatCreatedDate(b.createdAt)}</span>
+                        </div>
+                      )}
+                      <div className="text-xs text-muted-foreground mt-1 flex flex-col gap-0.5">
+                        <span className="inline-flex items-center gap-1">
+                          <Phone className="size-3 text-muted-foreground" />
+                          {b.phone}
+                        </span>
+                        {b.email && (
+                          <span className="inline-flex items-center gap-1">
+                            <Mail className="size-3 text-muted-foreground" />
+                            {b.email}
+                          </span>
+                        )}
+                        {b.country && (
+                          <span className="text-[10px] text-muted-foreground/80 uppercase">
+                            Country: {b.country}
+                          </span>
+                        )}
+                      </div>
                     </td>
 
                     {/* Consultation */}
@@ -555,10 +554,20 @@ export function BookingsManager({ initialBookings, initialTotalCount, initialTot
                           Confirmed
                         </span>
                       ) : b.paymentStatus === 'failed' || b.paymentStatus === 'rejected' || b.status === 'failed' ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-600 border border-rose-500/20">
-                          <XCircle className="size-3" />
-                          Failed
-                        </span>
+                        <div className="flex flex-col gap-1 items-start">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-600 border border-rose-500/20">
+                            <XCircle className="size-3" />
+                            Failed
+                          </span>
+                          {b.kashierResponseMessage && (
+                            <span
+                              className="text-[10px] text-rose-500/90 font-mono truncate max-w-[130px]"
+                              title={`Failure Reason: ${b.kashierResponseMessage}`}
+                            >
+                              {b.kashierResponseMessage}
+                            </span>
+                          )}
+                        </div>
                       ) : b.status === 'cancelled' ? (
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-600 border border-rose-500/20">
                           <XCircle className="size-3" />
@@ -676,11 +685,10 @@ export function BookingsManager({ initialBookings, initialTotalCount, initialTot
                       type="button"
                       disabled={refreshing}
                       onClick={() => goToPage(p)}
-                      className={`inline-flex items-center justify-center size-9 rounded-xl text-xs font-semibold transition-all ${
-                        p === currentPage
-                          ? 'bg-primary text-primary-foreground shadow-sm'
-                          : 'border border-border bg-card text-foreground hover:bg-muted'
-                      }`}
+                      className={`inline-flex items-center justify-center size-9 rounded-xl text-xs font-semibold transition-all ${p === currentPage
+                        ? 'bg-primary text-primary-foreground shadow-sm'
+                        : 'border border-border bg-card text-foreground hover:bg-muted'
+                        }`}
                     >
                       {p}
                     </button>
@@ -752,7 +760,7 @@ export function BookingsManager({ initialBookings, initialTotalCount, initialTot
       {/* Modal for Edit & Reschedule Booking */}
       {editingBooking && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs overflow-y-auto">
-          <div className="bg-card rounded-[2.5rem] border border-border p-6 sm:p-8 max-w-lg w-full relative shadow-2xl my-8">
+          <div className="bg-card max-h-[94vh] overflow-y-scroll rounded-[2.5rem] border border-border p-6 sm:p-8 max-w-lg w-full relative shadow-2xl my-8">
             <div className="flex items-center justify-between pb-4 border-b border-border">
               <div>
                 <h3 className="font-serif text-lg font-bold text-foreground">
@@ -789,13 +797,12 @@ export function BookingsManager({ initialBookings, initialTotalCount, initialTot
                       {editingBooking.paymentMethod || 'InstaPay'}
                     </span>
                     <span
-                      className={`inline-block text-[10px] uppercase font-semibold px-2 py-0.5 rounded-md ${
-                        editingBooking.paymentStatus === 'verified'
-                          ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
-                          : editingBooking.paymentStatus === 'failed' || editingBooking.paymentStatus === 'rejected'
+                      className={`inline-block text-[10px] uppercase font-semibold px-2 py-0.5 rounded-md ${editingBooking.paymentStatus === 'verified'
+                        ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
+                        : editingBooking.paymentStatus === 'failed' || editingBooking.paymentStatus === 'rejected'
                           ? 'bg-rose-500/10 text-rose-600 border border-rose-500/20'
                           : 'bg-amber-500/10 text-amber-600 border border-amber-500/20'
-                      }`}
+                        }`}
                     >
                       {editingBooking.paymentStatus}
                     </span>
@@ -825,6 +832,19 @@ export function BookingsManager({ initialBookings, initialTotalCount, initialTot
                     <span className="font-mono font-medium text-foreground">
                       1 {editingBooking.originalCurrency || 'USD'} = {editingBooking.exchangeRate.toFixed(4)} EGP
                     </span>
+                  </div>
+                )}
+                {editingBooking.kashierResponseMessage && (editingBooking.paymentStatus === 'failed' || editingBooking.paymentStatus === 'rejected' || editingBooking.status === 'failed') && (
+                  <div className="text-xs text-rose-600 dark:text-rose-400 bg-rose-500/10 border border-rose-500/20 p-2.5 rounded-xl flex items-start gap-2 border-t border-border/60 pt-2">
+                    <AlertCircle className="size-4 shrink-0 mt-0.5 text-rose-500" />
+                    <div className="flex-1">
+                      <span className="font-semibold block text-[11px] uppercase tracking-wider text-rose-700 dark:text-rose-300">
+                        Kashier Failure Reason:
+                      </span>
+                      <span className="font-mono text-xs break-all text-rose-600 dark:text-rose-400">
+                        {editingBooking.kashierResponseMessage}
+                      </span>
+                    </div>
                   </div>
                 )}
 
