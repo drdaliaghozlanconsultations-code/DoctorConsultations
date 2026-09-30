@@ -1,6 +1,6 @@
 import React from 'react'
 import { verifySession } from '@/lib/auth/dal'
-import { getVisitsCollection, getBookingsCollection } from '@/lib/db'
+import { getVisitsCollection, getBookingsCollection, withRetry } from '@/lib/db'
 import { AnalyticsDashboard } from '@/components/dashboard/analytics-dashboard'
 
 export const dynamic = 'force-dynamic'
@@ -27,9 +27,6 @@ function getRolling12Months(now: Date = new Date()) {
 export default async function AnalyticsPage() {
   const session = await verifySession()
 
-  const visitsCollection = await getVisitsCollection()
-  const bookingsCollection = await getBookingsCollection()
-
   const now = new Date()
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
@@ -46,53 +43,57 @@ export default async function AnalyticsPage() {
     referrersAggregation,
     monthlyVisitsAggregation,
     recentVisitsDocs,
-  ] = await Promise.all([
-    visitsCollection.countDocuments(),
-    visitsCollection.countDocuments({ timestamp: { $gte: startOfToday } }),
-    visitsCollection.countDocuments({ timestamp: { $gte: sevenDaysAgo } }),
-    visitsCollection.countDocuments({ timestamp: { $gte: thirtyDaysAgo } }),
-    visitsCollection
-      .aggregate([
-        { $group: { _id: '$country', count: { $sum: 1 } } },
-        { $sort: { count: -1 } },
-        { $limit: 10 },
-      ])
-      .toArray(),
-    visitsCollection
-      .aggregate([
-        { $group: { _id: '$path', count: { $sum: 1 } } },
-        { $sort: { count: -1 } },
-        { $limit: 8 },
-      ])
-      .toArray(),
-    visitsCollection
-      .aggregate([
-        { $group: { _id: '$referrer', count: { $sum: 1 } } },
-        { $sort: { count: -1 } },
-        { $limit: 6 },
-      ])
-      .toArray(),
-    visitsCollection
-      .aggregate([
-        {
-          $match: {
-            timestamp: { $gte: startOf12Months },
-          },
-        },
-        {
-          $group: {
-            _id: {
-              year: { $year: '$timestamp' },
-              month: { $month: '$timestamp' },
-              country: '$country',
+  ] = await withRetry(async () => {
+    const visitsCollection = await getVisitsCollection()
+
+    return Promise.all([
+      visitsCollection.countDocuments(),
+      visitsCollection.countDocuments({ timestamp: { $gte: startOfToday } }),
+      visitsCollection.countDocuments({ timestamp: { $gte: sevenDaysAgo } }),
+      visitsCollection.countDocuments({ timestamp: { $gte: thirtyDaysAgo } }),
+      visitsCollection
+        .aggregate([
+          { $group: { _id: '$country', count: { $sum: 1 } } },
+          { $sort: { count: -1 } },
+          { $limit: 10 },
+        ])
+        .toArray(),
+      visitsCollection
+        .aggregate([
+          { $group: { _id: '$path', count: { $sum: 1 } } },
+          { $sort: { count: -1 } },
+          { $limit: 8 },
+        ])
+        .toArray(),
+      visitsCollection
+        .aggregate([
+          { $group: { _id: '$referrer', count: { $sum: 1 } } },
+          { $sort: { count: -1 } },
+          { $limit: 6 },
+        ])
+        .toArray(),
+      visitsCollection
+        .aggregate([
+          {
+            $match: {
+              timestamp: { $gte: startOf12Months },
             },
-            count: { $sum: 1 },
           },
-        },
-      ])
-      .toArray(),
-    visitsCollection.find({}).sort({ timestamp: -1 }).limit(30).toArray(),
-  ])
+          {
+            $group: {
+              _id: {
+                year: { $year: '$timestamp' },
+                month: { $month: '$timestamp' },
+                country: '$country',
+              },
+              count: { $sum: 1 },
+            },
+          },
+        ])
+        .toArray(),
+      visitsCollection.find({}).sort({ timestamp: -1 }).limit(30).toArray(),
+    ])
+  })
 
   const rolling12Months = getRolling12Months(now)
 
@@ -160,7 +161,8 @@ export default async function AnalyticsPage() {
   const isAdmin = session.role === 'admin'
 
   if (isAdmin) {
-    const allBookings = await bookingsCollection.find({}).toArray()
+    const bookingsCol = await getBookingsCollection()
+    const allBookings = await bookingsCol.find({}).toArray()
 
     let totalRevenueEGP = 0
     let totalRevenueUSD = 0

@@ -6,6 +6,7 @@ import {
   getVisitsCollection,
   getPaymentProcessesCollection,
   BookingItem,
+  withRetry,
 } from '@/lib/db'
 import { DashboardOverview } from '@/components/dashboard/dashboard-overview'
 
@@ -13,10 +14,6 @@ export const dynamic = 'force-dynamic'
 
 export default async function DashboardPage() {
   const session = await verifySession()
-
-  const bookingsCollection = await getBookingsCollection()
-  const consultationsCollection = await getConsultationsCollection()
-  const visitsCollection = await getVisitsCollection()
 
   const now = new Date()
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
@@ -37,16 +34,22 @@ export default async function DashboardPage() {
     totalVisits,
     recentBookingsDocs,
     todayBookingsDocs,
-  ] = await Promise.all([
-    bookingsCollection.countDocuments({ status: 'pending' }),
-    bookingsCollection.countDocuments({ status: 'confirmed' }),
-    bookingsCollection.countDocuments({}),
-    consultationsCollection.countDocuments({ isActive: true }),
-    visitsCollection.countDocuments({ timestamp: { $gte: startOfToday } }),
-    visitsCollection.countDocuments({}),
-    bookingsCollection.find({}).sort({ createdAt: -1 }).limit(6).toArray(),
-    bookingsCollection.find({ date: todayDateStr }).sort({ time: 1 }).toArray(),
-  ])
+  ] = await withRetry(async () => {
+    const bookingsCollection = await getBookingsCollection()
+    const consultationsCollection = await getConsultationsCollection()
+    const visitsCollection = await getVisitsCollection()
+
+    return Promise.all([
+      bookingsCollection.countDocuments({ status: 'pending' }),
+      bookingsCollection.countDocuments({ status: 'confirmed' }),
+      bookingsCollection.countDocuments({}),
+      consultationsCollection.countDocuments({ isActive: true }),
+      visitsCollection.countDocuments({ timestamp: { $gte: startOfToday } }),
+      visitsCollection.countDocuments({}),
+      bookingsCollection.find({}).sort({ createdAt: -1 }).limit(6).toArray(),
+      bookingsCollection.find({ date: todayDateStr }).sort({ time: 1 }).toArray(),
+    ])
+  })
 
   // Enrich any failed booking missing kashierResponseMessage from paymentProcesses
   const allDocs = [...recentBookingsDocs, ...todayBookingsDocs]
@@ -94,3 +97,4 @@ export default async function DashboardPage() {
     />
   )
 }
+

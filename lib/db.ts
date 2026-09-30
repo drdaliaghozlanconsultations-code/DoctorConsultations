@@ -1,6 +1,39 @@
 import { ObjectId } from 'mongodb'
 import clientPromise from './mongodb'
 
+/**
+ * Retry a database operation on transient connection errors.
+ * In serverless environments, the first attempt can fail due to a cold start
+ * or stale connection; retrying once usually resolves it.
+ */
+export async function withRetry<T>(
+  operation: () => Promise<T>,
+  maxRetries = 2
+): Promise<T> {
+  let lastError: unknown
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation()
+    } catch (err: any) {
+      lastError = err
+      const isTransient =
+        err?.name === 'MongoServerSelectionError' ||
+        err?.name === 'MongoNetworkError' ||
+        err?.name === 'MongoNetworkTimeoutError' ||
+        err?.message?.includes('Server selection timed out') ||
+        err?.message?.includes('connection') ||
+        err?.message?.includes('topology was destroyed')
+      if (!isTransient || attempt >= maxRetries) {
+        throw err
+      }
+      // Wait briefly before retrying (200ms first, 600ms second)
+      await new Promise((r) => setTimeout(r, 200 * (attempt + 1)))
+    }
+  }
+  throw lastError
+}
+
+
 export type UserRole = 'admin' | 'staff'
 
 export interface UserDoc {

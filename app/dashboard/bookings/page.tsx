@@ -6,6 +6,7 @@ import {
   getPaymentProcessesCollection,
   BookingItem,
   ConsultationItem,
+  withRetry,
 } from '@/lib/db'
 import { BookingsManager } from '@/components/dashboard/bookings-manager'
 
@@ -16,15 +17,16 @@ const PAGE_SIZE = 15
 export default async function BookingsDashboardPage() {
   const session = await verifySession()
 
-  const bookingsCollection = await getBookingsCollection()
-  const consultationsCollection = await getConsultationsCollection()
-  const paymentProcessesCollection = await getPaymentProcessesCollection()
+  const [totalCount, bookingsDocs, consultationsDocs] = await withRetry(async () => {
+    const bookingsCollection = await getBookingsCollection()
+    const consultationsCollection = await getConsultationsCollection()
 
-  const [totalCount, bookingsDocs, consultationsDocs] = await Promise.all([
-    bookingsCollection.countDocuments({}),
-    bookingsCollection.find({}).sort({ createdAt: -1 }).limit(PAGE_SIZE).toArray(),
-    consultationsCollection.find({ isActive: true }).sort({ sortOrder: 1 }).toArray(),
-  ])
+    return Promise.all([
+      bookingsCollection.countDocuments({}),
+      bookingsCollection.find({}).sort({ createdAt: -1 }).limit(PAGE_SIZE).toArray(),
+      consultationsCollection.find({ isActive: true }).sort({ sortOrder: 1 }).toArray(),
+    ])
+  })
 
   // Enrich any failed booking missing kashierResponseMessage from paymentProcesses
   const missingRefs = bookingsDocs
@@ -33,6 +35,7 @@ export default async function BookingsDashboardPage() {
 
   let procMap = new Map<string, string>()
   if (missingRefs.length > 0) {
+    const paymentProcessesCollection = await getPaymentProcessesCollection()
     const processes = await paymentProcessesCollection
       .find({ bookingReference: { $in: missingRefs }, kashierResponseMessage: { $exists: true } })
       .toArray()
@@ -60,3 +63,4 @@ export default async function BookingsDashboardPage() {
     />
   )
 }
+
